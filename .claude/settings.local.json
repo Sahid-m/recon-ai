@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python *)",
+      "Bash(npx create-next-app@latest *)",
+      "Bash(cp /tmp/recon-ai/package.json \"/c/Users/sahid/Desktop/HackLondon/App/package.json\")",
+      "Bash(cp /tmp/recon-ai/package-lock.json \"/c/Users/sahid/Desktop/HackLondon/App/package-lock.json\")",
+      "Bash(cp /tmp/recon-ai/next.config.ts \"/c/Users/sahid/Desktop/HackLondon/App/next.config.ts\")",
+      "Bash(cp /tmp/recon-ai/tsconfig.json \"/c/Users/sahid/Desktop/HackLondon/App/tsconfig.json\")",
+      "Bash(cp /tmp/recon-ai/eslint.config.mjs \"/c/Users/sahid/Desktop/HackLondon/App/eslint.config.mjs\")",
+      "Bash(cp -r /tmp/recon-ai/app \"/c/Users/sahid/Desktop/HackLondon/App/app\")",
+      "Bash(cp -r /tmp/recon-ai/public \"/c/Users/sahid/Desktop/HackLondon/App/public\")",
+      "Bash(npm install *)",
+      "Bash(npx tsc *)",
+      "Bash(node -e \"require\\('./node_modules/next/dist/server/config.js'\\)\")",
+      "Bash(node *)",
+      "Bash(npm ls *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(npm test *)"
+    ]
+  }
+}
