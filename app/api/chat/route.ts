@@ -1,5 +1,6 @@
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { convertFile } from '../../../lib/converters'
+import { rateLimit, PARSE_LIMIT } from '../../../lib/ratelimit'
 import { classify } from '../../../agents/classifier'
 import { parse } from '../../../agents/parser'
 import { validate } from '../../../agents/validator'
@@ -22,6 +23,15 @@ const ALLOWED_EXTENSIONS = ['xls', 'xlsx', 'xlsm', 'xlsb', 'csv', 'pdf']
 const MAX_SIZE = 10 * 1024 * 1024
 
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown'
+  const rl = rateLimit(`parse:${ip}`, PARSE_LIMIT)
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: `Too many uploads. Try again in ${Math.ceil(rl.resetInMs / 1000)}s.` },
+      { status: 429, headers: { 'Retry-After': String(Math.ceil(rl.resetInMs / 1000)) } }
+    )
+  }
+
   const formData = await req.formData()
   const file = formData.get('file') as File | null
 

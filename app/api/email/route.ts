@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
+import { rateLimit, EMAIL_LIMIT } from '../../../lib/ratelimit'
 import { convertFile } from '../../../lib/converters'
 import { classify } from '../../../agents/classifier'
 import { parse } from '../../../agents/parser'
@@ -227,6 +228,19 @@ export async function POST(req: NextRequest) {
     const fromAddress = extractEmailAddress(from)
     const toAddress = Array.isArray(to) ? to[0] : to
     const slug = slugFromEmail(toAddress)
+
+    // Rate limit by sender — 10 emails per hour
+    const rl = rateLimit(`email:${fromAddress}`, EMAIL_LIMIT)
+    if (!rl.allowed) {
+      // Still reply politely rather than silently dropping
+      await resend.emails.send({
+        from: `Recon AI <noreply@${INBOUND_DOMAIN}>`,
+        to: [fromAddress],
+        subject: 'Too many requests',
+        html: guidanceHtml(toAddress, `You've sent too many statements in the last hour. Please wait ${Math.ceil(rl.resetInMs / 60000)} minute(s) before sending another.`),
+      })
+      return NextResponse.json({ ok: true, note: 'Rate limited' }, { status: 429 })
+    }
 
     const logEntry: EmailLogEntry = {
       id: email_id,

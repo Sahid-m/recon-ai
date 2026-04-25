@@ -1,5 +1,6 @@
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { generateText, stepCountIs } from 'ai'
+import { rateLimit, CHAT_LIMIT } from '../../../lib/ratelimit'
 import { z } from 'zod'
 import { zodSchema } from 'ai'
 import { getModel } from '../../../lib/model'
@@ -41,6 +42,15 @@ type ParsedRow = {
 }
 
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown'
+  const rl = rateLimit(`chat:${ip}`, CHAT_LIMIT)
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: `Too many requests. Try again in ${Math.ceil(rl.resetInMs / 1000)}s.` },
+      { status: 429, headers: { 'Retry-After': String(Math.ceil(rl.resetInMs / 1000)) } }
+    )
+  }
+
   const body = await req.json()
   const { message, firm, parsedRows, history } = body as {
     message: string
