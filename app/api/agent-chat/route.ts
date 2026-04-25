@@ -59,6 +59,34 @@ export async function POST(req: NextRequest) {
     history: Array<{ role: 'user' | 'assistant'; content: string }>
   }
 
+  // Pre-load firm history and email log so the agent has full context immediately
+  let firmHistory = ''
+  let emailLogSummary = ''
+  if (firm) {
+    try {
+      firmHistory = (await getFirmFile(firm.firmName)) ?? ''
+    } catch { /* non-fatal */ }
+    try {
+      const raw = await rdbRead('_email-log.json')
+      if (raw) {
+        const logs = JSON.parse(raw) as Array<{
+          receivedAt: string; from: string; subject: string; firmName: string;
+          status: string; summary?: { totalExpected: number; totalReceived: number; gap: number; autoCount: number; suggestedCount: number; unmatchedCount: number };
+          attachmentName?: string; anomalyExplanation?: string;
+        }>
+        const firmLogs = logs.filter(l =>
+          l.firmName?.toLowerCase().replace(/\s+/g, '-') === firm.firmName.toLowerCase().replace(/\s+/g, '-')
+        ).slice(0, 20)
+        if (firmLogs.length > 0) {
+          emailLogSummary = firmLogs.map(l => {
+            const s = l.summary
+            return `- ${l.receivedAt.slice(0, 10)} | ${l.status} | ${l.attachmentName ?? 'unknown'} | Expected £${s?.totalExpected?.toFixed(2) ?? '?'} | Received £${s?.totalReceived?.toFixed(2) ?? '?'} | Gap £${s?.gap?.toFixed(2) ?? '?'} | Auto ${s?.autoCount ?? '?'} Suggested ${s?.suggestedCount ?? '?'} Unmatched ${s?.unmatchedCount ?? '?'}${l.anomalyExplanation ? `\n  AI: ${l.anomalyExplanation.slice(0, 200)}` : ''}`
+          }).join('\n')
+        }
+      }
+    } catch { /* non-fatal */ }
+  }
+
   const stream = new TransformStream()
   const writer = stream.writable.getWriter()
   const enc = new TextEncoder()
@@ -69,18 +97,7 @@ export async function POST(req: NextRequest) {
       const { text } = await generateText({
         model: getModel(),
         system: `You are Recon AI — an intelligent income reconciliation assistant for UK IFA firms.
-You have full access to ReadmeDB, a persistent markdown file store. Use it freely to:
-- Read and write any file (notes, reports, temp data, client summaries, audit logs)
-- Store intermediate results between sessions
-- Create named files for any purpose (e.g. "notes.md", "flagged-clients.md", "temp-analysis.md")
-- List all files in the namespace to orient yourself
-- Append to existing files rather than overwriting when accumulating data
-
-ReadmeDB file naming rules: letters, digits, hyphens, underscores, dots, spaces. No slashes. Max 200 chars.
-The firm's main history file is: ${firm ? firmFileName(firm.firmName) : '<firmname>.md'}
-
-Use your tools to answer every data question. Never invent numbers.
-Always call list_readmedb_files at the start of a session to see what files exist.
+You have full access to ReadmeDB (persistent markdown file store) and the full email processing history for this firm.
 
 ## Response formatting (always follow)
 - Respond in **Markdown format** always
@@ -88,15 +105,25 @@ Always call list_readmedb_files at the start of a session to see what files exis
 - Use tables for reconciliation results, client lists, match breakdowns
 - Use bullet lists for anomalies, action items, multi-point explanations
 - Use \`code\` for plan numbers, file names, identifiers
-- Use ## and ### headings to separate sections in longer responses
 - Lead with the most important finding, then detail
 - For reconciliation summaries always include: total expected, total received, gap, match counts in a table
 
-Session context:
-- Firm: ${firm?.firmName ?? 'Not set up'}
-- Clients: ${firm?.clients.length ?? 0}
-- Email: ${firm?.emailAddress ?? 'N/A'}
-- Parsed rows in session: ${parsedRows?.length ?? 0}`,
+## Tools available
+- Use tools to answer every data question. Never invent numbers.
+- Use \`get_email_log\` to look up specific email reconciliation runs
+- Use \`get_firm_history\` to read the full firm markdown history
+- Use \`read_readmedb_file\` / \`write_readmedb_file\` for any other files
+
+## Session context
+- Firm: **${firm?.firmName ?? 'Not set up'}**
+- Clients loaded: ${firm?.clients.length ?? 0}
+- Email address: ${firm?.emailAddress ?? 'N/A'}
+- Parsed rows in session: ${parsedRows?.length ?? 0}
+- Firm history file: ${firm ? firmFileName(firm.firmName) : 'none'}
+
+${emailLogSummary ? `## Email reconciliation history (most recent 20 runs)\n${emailLogSummary}` : '## Email reconciliation history\nNo email runs found for this firm yet.'}
+
+${firmHistory ? `## Firm ReadmeDB file (full content)\n\`\`\`\n${firmHistory.slice(0, 6000)}${firmHistory.length > 6000 ? '\n... (truncated, use get_firm_history tool for full content)' : ''}\n\`\`\`` : ''}`,
         messages: [
           ...history.map(h => ({ role: h.role, content: h.content } as { role: 'user' | 'assistant'; content: string })),
           { role: 'user' as const, content: message },
@@ -132,15 +159,56 @@ Session context:
             },
           },
 
+          get_email_log: {
+            description: 'Get detailed email reconciliation log entries for this firm. Use to answer questions about past reconciliations, gaps, anomalies, specific dates.',
+            inputSchema: zodSchema(z.object({
+              limit: z.number().optional().describe('Max entries to return, default 10'),
+              status: z.enum(['done', 'error', 'processing', 'all']).optional().describe('Filter by status'),
+            })),
+            execute: async ({ limit = 10, status = 'all' }: { limit?: number; status?: string }): Promise<ToolResult> => {
+              await send({ type: 'tool_start', tool: 'get_email_log', description: 'Loading email reconciliation log…' })
+              try {
+                const raw = await rdbRead('_email-log.json')
+                if (!raw) return { found: false, message: 'No email log yet.' }
+                const allLogs = JSON.parse(raw) as Array<Record<string, unknown>>
+                const firmLogs = allLogs.filter(l => {
+                  const lFirm = String(l.firmName ?? '').toLowerCase().replace(/\s+/g, '-')
+                  const curFirm = (firm?.firmName ?? '').toLowerCase().replace(/\s+/g, '-')
+                  return lFirm === curFirm || lFirm.includes(curFirm) || curFirm.includes(lFirm)
+                })
+                const filtered = status === 'all' ? firmLogs : firmLogs.filter(l => l.status === status)
+                const result: ToolResult = {
+                  total: filtered.length,
+                  entries: filtered.slice(0, limit).map(l => ({
+                    date: String(l.receivedAt ?? '').slice(0, 10),
+                    subject: l.subject,
+                    from: l.from,
+                    status: l.status,
+                    attachment: l.attachmentName,
+                    summary: l.summary,
+                    anomalyExplanation: l.anomalyExplanation,
+                    steps: (l.steps as Array<{ name: string; detail: string }> | undefined)?.map(s => `${s.name}: ${s.detail}`),
+                    durationMs: l.durationMs,
+                    error: l.error,
+                  })),
+                }
+                await send({ type: 'tool_result', tool: 'get_email_log', result })
+                return result
+              } catch (e) {
+                return { error: String(e) }
+              }
+            },
+          },
+
           get_firm_history: {
-            description: 'Read reconciliation history for this firm from ReadmeDB.',
+            description: 'Read the full reconciliation history markdown file for this firm from ReadmeDB.',
             inputSchema: zodSchema(z.object({})),
             execute: async (): Promise<ToolResult> => {
               await send({ type: 'tool_start', tool: 'get_firm_history', description: `Loading ${firm?.firmName ?? 'firm'} history from ReadmeDB…` })
               if (!firm) return { error: 'No firm set up.' }
               const content = await getFirmFile(firm.firmName)
               const result: ToolResult = content
-                ? { found: true, preview: content.slice(0, 1000), totalLength: content.length }
+                ? { found: true, content, totalLength: content.length }
                 : { found: false, message: 'No history yet. Reconcile a statement to create it.' }
               await send({ type: 'tool_result', tool: 'get_firm_history', result })
               return result

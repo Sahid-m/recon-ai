@@ -33,7 +33,7 @@ function extractEmailAddress(raw: string): string {
 
 async function findFirmBySlug(slug: string): Promise<{
   firmName: string
-  clients: Array<{ name: string; clientId: string; planNumber: string; platform: string; expectedMonthlyFee: number }>
+  clients: Array<{ name: string; clientId: string; planNumber: string; platform: string; expectedMonthlyFee: number; lastReviewDate?: string }>
 } | null> {
   try {
     const files = await rdbList()
@@ -54,7 +54,7 @@ async function findFirmBySlug(slug: string): Promise<{
 
     // Extract the clients JSON block — find the opening fence, then parse until
     // we hit a line that is exactly ``` (closing fence on its own line)
-    let clients: Array<{ name: string; clientId: string; planNumber: string; platform: string; expectedMonthlyFee: number }> = []
+    let clients: Array<{ name: string; clientId: string; planNumber: string; platform: string; expectedMonthlyFee: number; lastReviewDate?: string }> = []
     const startMarker = '```json clients\n'
     const startIdx = content.indexOf(startMarker)
     if (startIdx !== -1) {
@@ -402,7 +402,17 @@ To get started, visit <a href="https://readmedb.com" style="color:#6366f1">readm
     const suggested = matches.filter(m => m.tier === 'suggested')
     const unmatched = matches.filter(m => m.tier === 'unmatched')
     const totalReceived = matches.reduce((s, m) => s + m.parsed.grossAmount, 0)
-    const totalExpected = matches.reduce((s, m) => s + (m.client?.expectedMonthlyFee ?? 0), 0)
+    // Expected = sum across all clients whose platform appears in the processed statements.
+    // Fall back to all clients if platform field is missing/inconsistent.
+    const processedPlatforms = new Set(platforms.map(p => p.toLowerCase()))
+    const platformClients = processedPlatforms.size > 0
+      ? clients.filter(c => {
+          const p = (c.platform ?? '').toLowerCase().trim()
+          return !p || processedPlatforms.has(p)  // include clients with no platform set
+        })
+      : clients
+    const totalExpected = (platformClients.length > 0 ? platformClients : clients)
+      .reduce((s, c) => s + (Number(c.expectedMonthlyFee) || 0), 0)
     const gap = totalExpected - totalReceived
     const summary = { totalExpected, totalReceived, gap, autoCount: auto.length, suggestedCount: suggested.length, unmatchedCount: unmatched.length }
     await addStep('Reconciled', `✅ ${auto.length} auto · 🟡 ${suggested.length} suggested · 🔴 ${unmatched.length} unmatched | Gap: £${Math.abs(gap).toFixed(2)}`)

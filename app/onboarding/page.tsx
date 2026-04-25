@@ -10,6 +10,7 @@ interface ClientRecord {
   planNumber: string
   platform: string
   expectedMonthlyFee: number
+  lastReviewDate?: string
 }
 
 const CRM_OPTIONS = [
@@ -104,7 +105,8 @@ export default function OnboardingPage() {
           clientId: String(r['Client ID'] ?? r['ClientID'] ?? ''),
           planNumber: String(r['Plan Number'] ?? r['Plan No'] ?? r['planNumber'] ?? ''),
           platform: String(r['Platform'] ?? r['platform'] ?? ''),
-          expectedMonthlyFee: Number(r['Expected Monthly Fee'] ?? r['Monthly Fee'] ?? r['fee'] ?? 0),
+          expectedMonthlyFee: Number(r['Expected Monthly Fee'] ?? r['Monthly Fee'] ?? r['expectedMonthlyFee'] ?? r['fee'] ?? 0),
+          ...(r['Last Review Date'] ?? r['lastReviewDate'] ? { lastReviewDate: String(r['Last Review Date'] ?? r['lastReviewDate']) } : {}),
         })).filter(r => r.name)
 
         if (parsed.length === 0) {

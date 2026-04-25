@@ -39,17 +39,15 @@ interface FirmData {
 // ─── Tool metadata ────────────────────────────────────────────────────────────
 
 const TOOL_META: Record<string, { icon: string; label: string }> = {
-  // Parse pipeline
   convert:                { icon: '📂', label: 'file_read()' },
   classify:               { icon: '🔍', label: 'classify_platform()' },
   parse:                  { icon: '⚙️', label: 'extract_rows()' },
   validate:               { icon: '✅', label: 'score_confidence()' },
-  // Reconciliation
   reconcile_statement:    { icon: '🔗', label: 'reconcile_statement()' },
   get_client_list:        { icon: '👥', label: 'get_client_list()' },
   get_parsed_rows:        { icon: '📊', label: 'get_parsed_rows()' },
   explain_anomaly:        { icon: '🧠', label: 'explain_anomaly()' },
-  // ReadmeDB
+  get_email_log:          { icon: '📬', label: 'get_email_log()' },
   get_firm_history:       { icon: '📋', label: 'get_firm_history()' },
   list_readmedb_files:    { icon: '🗂️', label: 'list_readmedb_files()' },
   read_readmedb_file:     { icon: '📖', label: 'read_readmedb_file()' },
@@ -59,12 +57,12 @@ const TOOL_META: Record<string, { icon: string; label: string }> = {
 }
 
 const QUICK_ACTIONS = [
+  { label: 'Email history',    msg: 'Show me all email reconciliation runs for my firm with a summary table' },
+  { label: 'Last run',         msg: 'What happened in the most recent reconciliation? Any anomalies or gaps?' },
+  { label: 'Gap analysis',     msg: 'Across all reconciliation runs, which clients have the most gaps or missing income?' },
+  { label: 'Client list',      msg: 'Show me my full client list with expected monthly fees' },
   { label: 'Reconcile',        msg: 'Reconcile the current statement against my client list' },
-  { label: 'Client list',      msg: 'Show me my imported client list' },
-  { label: 'List all files',   msg: 'List all files stored in ReadmeDB' },
-  { label: 'View history',     msg: 'Read my firm history file from ReadmeDB' },
   { label: 'Explain anomalies', msg: 'Explain any anomalies in the current data' },
-  { label: 'Save note',        msg: 'Save a summary of this session to ReadmeDB as session-notes.md' },
 ]
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -210,7 +208,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([{
     id: 'welcome',
     role: 'agent',
-    content: 'Hi! I can parse statements, reconcile income, show client data, and pull your history from ReadmeDB. Drop a file or ask me anything.',
+    content: 'Hi! I have full access to your firm\'s reconciliation history and all past email runs. Ask me anything — "what happened last month?", "which clients have gaps?", "show me all anomalies" — or drop a statement file to reconcile it now.',
   }])
   const [steps, setSteps] = useState<Step[]>([])
   const [input, setInput] = useState('')
