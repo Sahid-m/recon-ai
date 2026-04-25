@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import * as XLSX from 'xlsx'
 
@@ -75,6 +75,21 @@ export default function OnboardingPage() {
 
   const emailAddress = `${slugify(firmName) || 'yourfirm'}@readmedb.com`
 
+  // Seed ReadmeDB the moment clients are loaded so the email address is live instantly
+  const seededRef = useRef<string>('')
+  useEffect(() => {
+    if (clients.length === 0 || !firmName.trim()) return
+    const key = `${firmName}:${clients.length}`
+    if (seededRef.current === key) return
+    seededRef.current = key
+    localStorage.setItem('recon-firm', JSON.stringify({ firmName, clients, emailAddress, setupAt: Date.now() }))
+    fetch('/api/seed-firm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ firmName, clients, emailAddress }),
+    }).catch(() => {})
+  }, [clients, firmName, emailAddress])
+
   const handleFile = (file: File) => {
     setImportError('')
     const reader = new FileReader()
@@ -117,24 +132,7 @@ export default function OnboardingPage() {
     XLSX.writeFile(wb, 'readmedb-clients.xlsx')
   }
 
-  const finish = async () => {
-    localStorage.setItem('recon-firm', JSON.stringify({
-      firmName, clients, emailAddress, setupAt: Date.now(),
-      transactConnected,
-      ...(transactConnected ? { transactAdviserId } : {}),
-    }))
-
-    // Seed ReadmeDB with firm file so email handler can find clients
-    if (clients.length > 0) {
-      try {
-        await fetch('/api/seed-firm', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ firmName, clients, emailAddress }),
-        })
-      } catch { /* non-fatal */ }
-    }
-
+  const finish = () => {
     router.push('/dashboard')
   }
 
