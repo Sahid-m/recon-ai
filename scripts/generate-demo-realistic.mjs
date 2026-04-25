@@ -3,54 +3,56 @@ import { writeFileSync } from 'fs'
 
 // ── Meridian Wealth Management — 42 clients across 3 platforms ───────────────
 
+// "Good" clients have review dates within last 12 months (2025–2026)
+// CWS-flagged clients (intentional) have dates in 2023
 const clients = [
-  // Quilter clients (20)
-  { 'Client Name': 'Jonathan Whitfield',    'Client ID': 'MW001', 'Plan Number': 'QU-112001', 'Platform': 'Quilter',   'Expected Monthly Fee': 875.00,  'Last Review Date': '2024-03-14' },
-  { 'Client Name': 'Susan Hartley',         'Client ID': 'MW002', 'Plan Number': 'QU-112002', 'Platform': 'Quilter',   'Expected Monthly Fee': 420.00,  'Last Review Date': '2024-07-22' },
-  { 'Client Name': 'Robert Fleming',        'Client ID': 'MW003', 'Plan Number': 'QU-112003', 'Platform': 'Quilter',   'Expected Monthly Fee': 1100.00, 'Last Review Date': '2024-09-01' },
-  { 'Client Name': 'Catherine Brooks',      'Client ID': 'MW004', 'Plan Number': 'QU-112004', 'Platform': 'Quilter',   'Expected Monthly Fee': 310.00,  'Last Review Date': '2024-01-10' },
-  { 'Client Name': 'Michael Davenport',     'Client ID': 'MW005', 'Plan Number': 'QU-112005', 'Platform': 'Quilter',   'Expected Monthly Fee': 650.00,  'Last Review Date': '2024-08-30' },
-  { 'Client Name': 'Amanda Worthington',    'Client ID': 'MW006', 'Plan Number': 'QU-112006', 'Platform': 'Quilter',   'Expected Monthly Fee': 485.00,  'Last Review Date': '2024-06-15' },
-  { 'Client Name': 'Peter Ashdown',         'Client ID': 'MW007', 'Plan Number': 'QU-112007', 'Platform': 'Quilter',   'Expected Monthly Fee': 720.00,  'Last Review Date': '2024-02-28' },
-  { 'Client Name': 'Helen Cartwright',      'Client ID': 'MW008', 'Plan Number': 'QU-112008', 'Platform': 'Quilter',   'Expected Monthly Fee': 195.00,  'Last Review Date': '2024-09-19' },
-  { 'Client Name': 'David Moorfield',       'Client ID': 'MW009', 'Plan Number': 'QU-112009', 'Platform': 'Quilter',   'Expected Monthly Fee': 540.00,  'Last Review Date': '2024-05-03' },
-  { 'Client Name': 'Patricia Sinclair',     'Client ID': 'MW010', 'Plan Number': 'QU-112010', 'Platform': 'Quilter',   'Expected Monthly Fee': 380.00,  'Last Review Date': '2023-11-12' },
-  { 'Client Name': 'Thomas Huntingdon',     'Client ID': 'MW011', 'Plan Number': 'QU-112011', 'Platform': 'Quilter',   'Expected Monthly Fee': 925.00,  'Last Review Date': '2024-07-07' },
-  { 'Client Name': 'Elizabeth Norwood',     'Client ID': 'MW012', 'Plan Number': 'QU-112012', 'Platform': 'Quilter',   'Expected Monthly Fee': 260.00,  'Last Review Date': '2024-08-11' },
-  { 'Client Name': 'James Pendleton',       'Client ID': 'MW013', 'Plan Number': 'QU-112013', 'Platform': 'Quilter',   'Expected Monthly Fee': 1350.00, 'Last Review Date': '2024-09-25' },
-  { 'Client Name': 'Caroline Forsythe',     'Client ID': 'MW014', 'Plan Number': 'QU-112014', 'Platform': 'Quilter',   'Expected Monthly Fee': 445.00,  'Last Review Date': '2024-04-18' },
-  { 'Client Name': 'Richard Blackmore',     'Client ID': 'MW015', 'Plan Number': 'QU-112015', 'Platform': 'Quilter',   'Expected Monthly Fee': 610.00,  'Last Review Date': '2024-08-05' },
-  { 'Client Name': 'Victoria Pemberton',    'Client ID': 'MW016', 'Plan Number': 'QU-112016', 'Platform': 'Quilter',   'Expected Monthly Fee': 330.00,  'Last Review Date': '2023-09-30' },
-  { 'Client Name': 'Andrew Gloucester',     'Client ID': 'MW017', 'Plan Number': 'QU-112017', 'Platform': 'Quilter',   'Expected Monthly Fee': 780.00,  'Last Review Date': '2024-07-14' },
-  { 'Client Name': 'Frances Whitmore',      'Client ID': 'MW018', 'Plan Number': 'QU-112018', 'Platform': 'Quilter',   'Expected Monthly Fee': 415.00,  'Last Review Date': '2024-09-08' },
-  { 'Client Name': 'George Thornbury',      'Client ID': 'MW019', 'Plan Number': 'QU-112019', 'Platform': 'Quilter',   'Expected Monthly Fee': 550.00,  'Last Review Date': '2024-06-22' },
-  { 'Client Name': 'Harriet Dunmore',       'Client ID': 'MW020', 'Plan Number': 'QU-112020', 'Platform': 'Quilter',   'Expected Monthly Fee': 290.00,  'Last Review Date': '2024-08-17' },
+  // Quilter clients (20) — reviews in 2025/2026 except Patricia & Victoria (CWS)
+  { 'Client Name': 'Jonathan Whitfield',    'Client ID': 'MW001', 'Plan Number': 'QU-112001', 'Platform': 'Quilter',   'Expected Monthly Fee': 875.00,  'Last Review Date': '2025-03-14' },
+  { 'Client Name': 'Susan Hartley',         'Client ID': 'MW002', 'Plan Number': 'QU-112002', 'Platform': 'Quilter',   'Expected Monthly Fee': 420.00,  'Last Review Date': '2025-07-22' },
+  { 'Client Name': 'Robert Fleming',        'Client ID': 'MW003', 'Plan Number': 'QU-112003', 'Platform': 'Quilter',   'Expected Monthly Fee': 1100.00, 'Last Review Date': '2025-09-01' },
+  { 'Client Name': 'Catherine Brooks',      'Client ID': 'MW004', 'Plan Number': 'QU-112004', 'Platform': 'Quilter',   'Expected Monthly Fee': 310.00,  'Last Review Date': '2026-01-10' },
+  { 'Client Name': 'Michael Davenport',     'Client ID': 'MW005', 'Plan Number': 'QU-112005', 'Platform': 'Quilter',   'Expected Monthly Fee': 650.00,  'Last Review Date': '2025-08-30' },
+  { 'Client Name': 'Amanda Worthington',    'Client ID': 'MW006', 'Plan Number': 'QU-112006', 'Platform': 'Quilter',   'Expected Monthly Fee': 485.00,  'Last Review Date': '2025-06-15' },
+  { 'Client Name': 'Peter Ashdown',         'Client ID': 'MW007', 'Plan Number': 'QU-112007', 'Platform': 'Quilter',   'Expected Monthly Fee': 720.00,  'Last Review Date': '2026-02-28' },
+  { 'Client Name': 'Helen Cartwright',      'Client ID': 'MW008', 'Plan Number': 'QU-112008', 'Platform': 'Quilter',   'Expected Monthly Fee': 195.00,  'Last Review Date': '2025-09-19' },
+  { 'Client Name': 'David Moorfield',       'Client ID': 'MW009', 'Plan Number': 'QU-112009', 'Platform': 'Quilter',   'Expected Monthly Fee': 540.00,  'Last Review Date': '2025-11-03' },
+  { 'Client Name': 'Patricia Sinclair',     'Client ID': 'MW010', 'Plan Number': 'QU-112010', 'Platform': 'Quilter',   'Expected Monthly Fee': 380.00,  'Last Review Date': '2023-11-12' }, // ← CWS flag
+  { 'Client Name': 'Thomas Huntingdon',     'Client ID': 'MW011', 'Plan Number': 'QU-112011', 'Platform': 'Quilter',   'Expected Monthly Fee': 925.00,  'Last Review Date': '2025-07-07' },
+  { 'Client Name': 'Elizabeth Norwood',     'Client ID': 'MW012', 'Plan Number': 'QU-112012', 'Platform': 'Quilter',   'Expected Monthly Fee': 260.00,  'Last Review Date': '2025-08-11' },
+  { 'Client Name': 'James Pendleton',       'Client ID': 'MW013', 'Plan Number': 'QU-112013', 'Platform': 'Quilter',   'Expected Monthly Fee': 1350.00, 'Last Review Date': '2025-09-25' },
+  { 'Client Name': 'Caroline Forsythe',     'Client ID': 'MW014', 'Plan Number': 'QU-112014', 'Platform': 'Quilter',   'Expected Monthly Fee': 445.00,  'Last Review Date': '2026-01-18' },
+  { 'Client Name': 'Richard Blackmore',     'Client ID': 'MW015', 'Plan Number': 'QU-112015', 'Platform': 'Quilter',   'Expected Monthly Fee': 610.00,  'Last Review Date': '2025-10-05' },
+  { 'Client Name': 'Victoria Pemberton',    'Client ID': 'MW016', 'Plan Number': 'QU-112016', 'Platform': 'Quilter',   'Expected Monthly Fee': 330.00,  'Last Review Date': '2023-09-30' }, // ← CWS flag
+  { 'Client Name': 'Andrew Gloucester',     'Client ID': 'MW017', 'Plan Number': 'QU-112017', 'Platform': 'Quilter',   'Expected Monthly Fee': 780.00,  'Last Review Date': '2025-07-14' },
+  { 'Client Name': 'Frances Whitmore',      'Client ID': 'MW018', 'Plan Number': 'QU-112018', 'Platform': 'Quilter',   'Expected Monthly Fee': 415.00,  'Last Review Date': '2026-03-08' },
+  { 'Client Name': 'George Thornbury',      'Client ID': 'MW019', 'Plan Number': 'QU-112019', 'Platform': 'Quilter',   'Expected Monthly Fee': 550.00,  'Last Review Date': '2025-11-22' },
+  { 'Client Name': 'Harriet Dunmore',       'Client ID': 'MW020', 'Plan Number': 'QU-112020', 'Platform': 'Quilter',   'Expected Monthly Fee': 290.00,  'Last Review Date': '2025-08-17' },
 
-  // Transact clients (14)
-  { 'Client Name': 'Charles Worthington',   'Client ID': 'MW021', 'Plan Number': 'TR-220101', 'Platform': 'Transact',  'Expected Monthly Fee': 1200.00, 'Last Review Date': '2024-09-12' },
-  { 'Client Name': 'Diana Ashworth',        'Client ID': 'MW022', 'Plan Number': 'TR-220102', 'Platform': 'Transact',  'Expected Monthly Fee': 560.00,  'Last Review Date': '2024-07-31' },
-  { 'Client Name': 'Edward Collingwood',    'Client ID': 'MW023', 'Plan Number': 'TR-220103', 'Platform': 'Transact',  'Expected Monthly Fee': 890.00,  'Last Review Date': '2024-08-20' },
-  { 'Client Name': 'Fiona Castleton',       'Client ID': 'MW024', 'Plan Number': 'TR-220104', 'Platform': 'Transact',  'Expected Monthly Fee': 345.00,  'Last Review Date': '2024-03-05' },
-  { 'Client Name': 'Graham Willoughby',     'Client ID': 'MW025', 'Plan Number': 'TR-220105', 'Platform': 'Transact',  'Expected Monthly Fee': 975.00,  'Last Review Date': '2024-09-18' },
-  { 'Client Name': 'Hannah Beaumont',       'Client ID': 'MW026', 'Plan Number': 'TR-220106', 'Platform': 'Transact',  'Expected Monthly Fee': 410.00,  'Last Review Date': '2024-06-28' },
-  { 'Client Name': 'Ian Crompton',          'Client ID': 'MW027', 'Plan Number': 'TR-220107', 'Platform': 'Transact',  'Expected Monthly Fee': 680.00,  'Last Review Date': '2023-10-15' },
-  { 'Client Name': 'Julia Ravenswood',      'Client ID': 'MW028', 'Plan Number': 'TR-220108', 'Platform': 'Transact',  'Expected Monthly Fee': 225.00,  'Last Review Date': '2024-08-02' },
-  { 'Client Name': 'Kenneth Alderton',      'Client ID': 'MW029', 'Plan Number': 'TR-220109', 'Platform': 'Transact',  'Expected Monthly Fee': 1450.00, 'Last Review Date': '2024-09-05' },
-  { 'Client Name': 'Laura Standish',        'Client ID': 'MW030', 'Plan Number': 'TR-220110', 'Platform': 'Transact',  'Expected Monthly Fee': 395.00,  'Last Review Date': '2024-07-09' },
-  { 'Client Name': 'Martin Elsworth',       'Client ID': 'MW031', 'Plan Number': 'TR-220111', 'Platform': 'Transact',  'Expected Monthly Fee': 810.00,  'Last Review Date': '2024-09-22' },
-  { 'Client Name': 'Natasha Hollingsworth', 'Client ID': 'MW032', 'Plan Number': 'TR-220112', 'Platform': 'Transact',  'Expected Monthly Fee': 465.00,  'Last Review Date': '2024-04-30' },
-  { 'Client Name': 'Oliver Stratford',      'Client ID': 'MW033', 'Plan Number': 'TR-220113', 'Platform': 'Transact',  'Expected Monthly Fee': 1050.00, 'Last Review Date': '2024-08-26' },
-  { 'Client Name': 'Pamela Westhampton',    'Client ID': 'MW034', 'Plan Number': 'TR-220114', 'Platform': 'Transact',  'Expected Monthly Fee': 320.00,  'Last Review Date': '2024-05-14' },
+  // Transact clients (14) — reviews in 2025/2026 except Ian (CWS)
+  { 'Client Name': 'Charles Worthington',   'Client ID': 'MW021', 'Plan Number': 'TR-220101', 'Platform': 'Transact',  'Expected Monthly Fee': 1200.00, 'Last Review Date': '2025-09-12' },
+  { 'Client Name': 'Diana Ashworth',        'Client ID': 'MW022', 'Plan Number': 'TR-220102', 'Platform': 'Transact',  'Expected Monthly Fee': 560.00,  'Last Review Date': '2025-07-31' },
+  { 'Client Name': 'Edward Collingwood',    'Client ID': 'MW023', 'Plan Number': 'TR-220103', 'Platform': 'Transact',  'Expected Monthly Fee': 890.00,  'Last Review Date': '2025-08-20' },
+  { 'Client Name': 'Fiona Castleton',       'Client ID': 'MW024', 'Plan Number': 'TR-220104', 'Platform': 'Transact',  'Expected Monthly Fee': 345.00,  'Last Review Date': '2026-03-05' },
+  { 'Client Name': 'Graham Willoughby',     'Client ID': 'MW025', 'Plan Number': 'TR-220105', 'Platform': 'Transact',  'Expected Monthly Fee': 975.00,  'Last Review Date': '2025-09-18' },
+  { 'Client Name': 'Hannah Beaumont',       'Client ID': 'MW026', 'Plan Number': 'TR-220106', 'Platform': 'Transact',  'Expected Monthly Fee': 410.00,  'Last Review Date': '2025-12-28' },
+  { 'Client Name': 'Ian Crompton',          'Client ID': 'MW027', 'Plan Number': 'TR-220107', 'Platform': 'Transact',  'Expected Monthly Fee': 680.00,  'Last Review Date': '2023-10-15' }, // ← CWS flag
+  { 'Client Name': 'Julia Ravenswood',      'Client ID': 'MW028', 'Plan Number': 'TR-220108', 'Platform': 'Transact',  'Expected Monthly Fee': 225.00,  'Last Review Date': '2025-08-02' },
+  { 'Client Name': 'Kenneth Alderton',      'Client ID': 'MW029', 'Plan Number': 'TR-220109', 'Platform': 'Transact',  'Expected Monthly Fee': 1450.00, 'Last Review Date': '2026-01-05' },
+  { 'Client Name': 'Laura Standish',        'Client ID': 'MW030', 'Plan Number': 'TR-220110', 'Platform': 'Transact',  'Expected Monthly Fee': 395.00,  'Last Review Date': '2025-10-09' },
+  { 'Client Name': 'Martin Elsworth',       'Client ID': 'MW031', 'Plan Number': 'TR-220111', 'Platform': 'Transact',  'Expected Monthly Fee': 810.00,  'Last Review Date': '2025-09-22' },
+  { 'Client Name': 'Natasha Hollingsworth', 'Client ID': 'MW032', 'Plan Number': 'TR-220112', 'Platform': 'Transact',  'Expected Monthly Fee': 465.00,  'Last Review Date': '2026-02-28' },
+  { 'Client Name': 'Oliver Stratford',      'Client ID': 'MW033', 'Plan Number': 'TR-220113', 'Platform': 'Transact',  'Expected Monthly Fee': 1050.00, 'Last Review Date': '2025-11-26' },
+  { 'Client Name': 'Pamela Westhampton',    'Client ID': 'MW034', 'Plan Number': 'TR-220114', 'Platform': 'Transact',  'Expected Monthly Fee': 320.00,  'Last Review Date': '2025-12-14' },
 
-  // Fidelity clients (8)
-  { 'Client Name': 'Quentin Ashby',         'Client ID': 'MW035', 'Plan Number': 'FI-330501', 'Platform': 'Fidelity',  'Expected Monthly Fee': 740.00,  'Last Review Date': '2024-09-03' },
-  { 'Client Name': 'Rebecca Dunstan',       'Client ID': 'MW036', 'Plan Number': 'FI-330502', 'Platform': 'Fidelity',  'Expected Monthly Fee': 285.00,  'Last Review Date': '2024-07-16' },
-  { 'Client Name': 'Simon Weatherby',       'Client ID': 'MW037', 'Plan Number': 'FI-330503', 'Platform': 'Fidelity',  'Expected Monthly Fee': 1100.00, 'Last Review Date': '2024-08-08' },
-  { 'Client Name': 'Teresa Montague',       'Client ID': 'MW038', 'Plan Number': 'FI-330504', 'Platform': 'Fidelity',  'Expected Monthly Fee': 495.00,  'Last Review Date': '2024-09-27' },
-  { 'Client Name': 'Ulric Pemberton',       'Client ID': 'MW039', 'Plan Number': 'FI-330505', 'Platform': 'Fidelity',  'Expected Monthly Fee': 625.00,  'Last Review Date': '2024-06-11' },
-  { 'Client Name': 'Vivienne Caldwell',     'Client ID': 'MW040', 'Plan Number': 'FI-330506', 'Platform': 'Fidelity',  'Expected Monthly Fee': 350.00,  'Last Review Date': '2023-12-20' },
-  { 'Client Name': 'Walter Kingsley',       'Client ID': 'MW041', 'Plan Number': 'FI-330507', 'Platform': 'Fidelity',  'Expected Monthly Fee': 890.00,  'Last Review Date': '2024-08-29' },
-  { 'Client Name': 'Yvonne Stafford',       'Client ID': 'MW042', 'Plan Number': 'FI-330508', 'Platform': 'Fidelity',  'Expected Monthly Fee': 420.00,  'Last Review Date': '2024-07-03' },
+  // Fidelity clients (8) — reviews in 2025/2026 except Vivienne (CWS)
+  { 'Client Name': 'Quentin Ashby',         'Client ID': 'MW035', 'Plan Number': 'FI-330501', 'Platform': 'Fidelity',  'Expected Monthly Fee': 740.00,  'Last Review Date': '2025-09-03' },
+  { 'Client Name': 'Rebecca Dunstan',       'Client ID': 'MW036', 'Plan Number': 'FI-330502', 'Platform': 'Fidelity',  'Expected Monthly Fee': 285.00,  'Last Review Date': '2025-07-16' },
+  { 'Client Name': 'Simon Weatherby',       'Client ID': 'MW037', 'Plan Number': 'FI-330503', 'Platform': 'Fidelity',  'Expected Monthly Fee': 1100.00, 'Last Review Date': '2026-02-08' },
+  { 'Client Name': 'Teresa Montague',       'Client ID': 'MW038', 'Plan Number': 'FI-330504', 'Platform': 'Fidelity',  'Expected Monthly Fee': 495.00,  'Last Review Date': '2025-09-27' },
+  { 'Client Name': 'Ulric Pemberton',       'Client ID': 'MW039', 'Plan Number': 'FI-330505', 'Platform': 'Fidelity',  'Expected Monthly Fee': 625.00,  'Last Review Date': '2026-01-11' },
+  { 'Client Name': 'Vivienne Caldwell',     'Client ID': 'MW040', 'Plan Number': 'FI-330506', 'Platform': 'Fidelity',  'Expected Monthly Fee': 350.00,  'Last Review Date': '2023-12-20' }, // ← CWS flag
+  { 'Client Name': 'Walter Kingsley',       'Client ID': 'MW041', 'Plan Number': 'FI-330507', 'Platform': 'Fidelity',  'Expected Monthly Fee': 890.00,  'Last Review Date': '2025-08-29' },
+  { 'Client Name': 'Yvonne Stafford',       'Client ID': 'MW042', 'Plan Number': 'FI-330508', 'Platform': 'Fidelity',  'Expected Monthly Fee': 420.00,  'Last Review Date': '2026-03-03' },
 ]
 
 // ── Quilter statement (October 2024) ─────────────────────────────────────────

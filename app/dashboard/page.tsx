@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import type { MatchedRow } from '../../lib/reconcile'
 
 interface FirmData {
@@ -258,12 +260,12 @@ export default function DashboardPage() {
         <span className="text-zinc-400 text-sm font-mono">{firm.firmName}</span>
         <div className="ml-auto flex items-center gap-3">
           <Link href="/chat" className="text-xs font-mono text-zinc-500 hover:text-zinc-300 transition-colors px-3 py-1.5 border border-zinc-800 rounded-lg">
-            Upload statement
+            💬 Chat
           </Link>
           <Link href="/admin" className="text-xs font-mono text-zinc-500 hover:text-zinc-300 transition-colors px-3 py-1.5 border border-zinc-800 rounded-lg">
             📬 Admin
           </Link>
-          <Link href="/onboarding" className="text-xs font-mono text-zinc-500 hover:text-zinc-300 transition-colors">
+          <Link href="/onboarding" className="text-xs font-mono text-zinc-500 hover:text-zinc-300 transition-colors px-3 py-1.5 border border-zinc-800 rounded-lg">
             Settings
           </Link>
         </div>
@@ -386,7 +388,32 @@ export default function DashboardPage() {
               <span className="text-xs font-mono text-zinc-400">reconciliation-report.md</span>
               <button onClick={() => { const blob = new Blob([result.markdown], { type: 'text/markdown' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'reconciliation-report.md'; a.click() }} className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">↓ download</button>
             </div>
-            <pre className="px-4 py-3 text-xs font-mono text-zinc-400 overflow-x-auto max-h-64 whitespace-pre-wrap">{result.markdown}</pre>
+            <div className="px-5 py-4 text-sm text-zinc-300 overflow-y-auto max-h-[32rem]">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  p: ({ children }) => <p className="mb-2 leading-relaxed text-zinc-300">{children}</p>,
+                  h1: ({ children }) => <h1 className="text-base font-bold mb-2 mt-4 first:mt-0 text-white">{children}</h1>,
+                  h2: ({ children }) => <h2 className="text-sm font-bold mb-2 mt-4 first:mt-0 text-zinc-100 border-b border-zinc-700 pb-1">{children}</h2>,
+                  h3: ({ children }) => <h3 className="text-sm font-semibold mb-1 mt-3 text-zinc-200">{children}</h3>,
+                  ul: ({ children }) => <ul className="list-disc list-inside space-y-0.5 mb-2 text-zinc-300">{children}</ul>,
+                  ol: ({ children }) => <ol className="list-decimal list-inside space-y-0.5 mb-2 text-zinc-300">{children}</ol>,
+                  li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                  strong: ({ children }) => <strong className="font-semibold text-white">{children}</strong>,
+                  code: ({ children }) => <code className="bg-zinc-800 border border-zinc-700 rounded px-1.5 py-0.5 text-xs font-mono text-indigo-300">{children}</code>,
+                  pre: ({ children }) => <pre className="bg-zinc-800 border border-zinc-700 rounded-lg p-3 text-xs font-mono text-zinc-300 overflow-x-auto my-2">{children}</pre>,
+                  table: ({ children }) => <div className="overflow-x-auto my-2"><table className="w-full text-xs border-collapse">{children}</table></div>,
+                  thead: ({ children }) => <thead className="bg-zinc-800">{children}</thead>,
+                  th: ({ children }) => <th className="px-3 py-1.5 text-left font-semibold text-zinc-300 border border-zinc-700">{children}</th>,
+                  td: ({ children }) => <td className="px-3 py-1.5 text-zinc-300 border border-zinc-700">{children}</td>,
+                  tr: ({ children }) => <tr className="even:bg-zinc-800/40">{children}</tr>,
+                  blockquote: ({ children }) => <blockquote className="border-l-2 border-indigo-500 pl-3 italic text-zinc-400 my-2">{children}</blockquote>,
+                  hr: () => <hr className="border-zinc-700 my-3" />,
+                }}
+              >
+                {result.markdown}
+              </ReactMarkdown>
+            </div>
           </div>
         )}
 
@@ -415,9 +442,9 @@ export default function DashboardPage() {
               </div>
               <div className="divide-y divide-zinc-800">
                 {[
-                  { icon: '✅', label: 'Auto-matched', count: summary.autoCount, amount: autoMatches.reduce((s, m) => s + m.parsed.grossAmount, 0), desc: '85%+ confidence — no action needed', color: 'text-green-400', rows: [] as typeof autoMatches },
-                  { icon: '🟡', label: 'Suggested match', count: summary.suggestedCount, amount: suggestedMatches.reduce((s, m) => s + m.parsed.grossAmount, 0), desc: '60–85% confidence — review recommended', color: 'text-amber-400', rows: suggestedMatches },
-                  { icon: '🔴', label: 'Unmatched / flagged', count: summary.unmatchedCount, amount: unmatchedMatches.reduce((s, m) => s + m.parsed.grossAmount, 0), desc: 'No client match found — human review required', color: 'text-red-400', rows: unmatchedMatches },
+                  { icon: '✅', label: 'Auto-matched', count: summary.autoCount, desc: '85%+ confidence — no action needed', color: 'text-green-400', rows: [] as typeof autoMatches },
+                  { icon: '🟡', label: 'Suggested match', count: summary.suggestedCount, desc: '60–85% confidence — review recommended', color: 'text-amber-400', rows: suggestedMatches },
+                  { icon: '🔴', label: 'Unmatched / flagged', count: summary.unmatchedCount, desc: 'No client match found — human review required', color: 'text-red-400', rows: unmatchedMatches },
                 ].map(row => (
                   <div key={row.label} className="px-5 py-4">
                     <div className="flex items-center gap-4">
@@ -427,8 +454,8 @@ export default function DashboardPage() {
                         <p className="text-xs text-zinc-500">{row.desc}</p>
                       </div>
                       <div className="text-right">
-                        <p className={`text-sm font-mono font-semibold ${row.color}`}>{fmt(row.amount)}</p>
-                        <p className="text-xs text-zinc-600">{row.count} items</p>
+                        <p className={`text-2xl font-mono font-bold ${row.color}`}>{row.count}</p>
+                        <p className="text-xs text-zinc-600">items</p>
                       </div>
                     </div>
                     {row.rows.length > 0 && (
@@ -459,8 +486,21 @@ export default function DashboardPage() {
                 <h2 className="text-sm font-semibold">AI Anomaly Analysis</h2>
                 <span className="text-xs font-mono text-green-400 bg-green-950/40 border border-green-900/40 px-2 py-0.5 rounded">live</span>
               </div>
-              <div className="px-5 py-4 text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap">
-                {result?.anomalyExplanation}
+              <div className="px-5 py-4 text-sm text-zinc-300 leading-relaxed">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
+                    strong: ({ children }) => <strong className="font-semibold text-white">{children}</strong>,
+                    ul: ({ children }) => <ul className="list-disc list-inside space-y-1 mb-2">{children}</ul>,
+                    ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 mb-2">{children}</ol>,
+                    li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                    h3: ({ children }) => <h3 className="text-sm font-semibold mb-1 mt-2 text-zinc-200">{children}</h3>,
+                    code: ({ children }) => <code className="bg-zinc-800 rounded px-1 py-0.5 text-xs font-mono text-indigo-300">{children}</code>,
+                  }}
+                >
+                  {result?.anomalyExplanation ?? ''}
+                </ReactMarkdown>
               </div>
             </div>
           </>
@@ -502,11 +542,14 @@ export default function DashboardPage() {
 
         <div className="flex gap-3">
           <Link href="/chat" className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg transition-colors">
-            📎 Upload new statement
+            📎 Upload statement
+          </Link>
+          <Link href="/chat" className="flex items-center gap-2 px-5 py-2.5 border border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200 text-sm font-medium rounded-lg transition-colors">
+            💬 Ask the AI agent
           </Link>
           {result?.markdown && (
             <button onClick={() => { const blob = new Blob([result.markdown], { type: 'text/markdown' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'reconciliation-report.md'; a.click() }} className="px-5 py-2.5 border border-zinc-700 text-zinc-400 hover:border-zinc-600 text-sm rounded-lg transition-colors">
-              Export .md report
+              Export .md
             </button>
           )}
         </div>
