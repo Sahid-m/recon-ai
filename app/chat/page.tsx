@@ -327,6 +327,13 @@ export default function ChatPage() {
       body: JSON.stringify({ message: text, firm, parsedRows, history: chatHistory }),
     })
 
+    if (res.status === 429) {
+      const { error } = await res.json()
+      setMessages(prev => prev.map(m => m.id === agentMsgId ? { ...m, content: `⏳ ${error}`, error: true } : m))
+      setIsProcessing(false)
+      return
+    }
+
     const reader = res.body!.getReader()
     const dec = new TextDecoder()
     let buffer = ''
