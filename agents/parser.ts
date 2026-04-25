@@ -19,18 +19,21 @@ export async function parse(
   const { object } = await generateObject({
     model: getModel(),
     schema: ParserOutputSchema,
-    prompt: `Extract all income rows from this UK investment platform statement.
+    prompt: `Extract all income/fee rows from this UK investment platform statement.
 
 Platform: ${classifierOutput.platform}
 Column mapping: ${JSON.stringify(classifierOutput.columnMap, null, 2)}
 Known quirks: ${classifierOutput.quirks.join(', ') || 'none'}
 
 Rules:
-- Extract every income row. Never drop a row.
-- If a field is ambiguous, make your best guess and note it in feeType.
-- grossAmount must be a positive number in GBP (strip £ signs and commas).
-- paymentDate must be ISO 8601 (YYYY-MM-DD).
-- platformName should be "${classifierOutput.platform}".
+- Extract EVERY data row. Never drop any row, even if fields are unusual.
+- clientName: use "Client Name", "Investor Name", "Client", "Name", or equivalent column.
+- planNumber: use "Plan Number", "Policy Number", "Account Number", "Reference", or equivalent.
+- feeType: use "Fee Type", "Transaction Type", "Charge Type", or default to "Adviser Charge".
+- grossAmount: use "Gross Amount", "Net Amount", "Amount", "Fee", "Charge" — must be a POSITIVE number in GBP (strip £ and commas).
+- paymentDate: use "Payment Date", "Transaction Date", "Date", "Effective Date" — convert to ISO 8601 (YYYY-MM-DD).
+- platformName: always "${classifierOutput.platform}".
+- If any field is missing, use a sensible default rather than dropping the row.
 
 Statement:
 ${fullText}`,
