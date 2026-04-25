@@ -4,6 +4,10 @@ import { useRef, useState, useCallback, useEffect } from 'react'
 import Link from 'next/link'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import {
+  BarChart, Bar, PieChart, Pie, Cell, LineChart, Line,
+  XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
+} from 'recharts'
 import type { AgentEvent } from '../api/chat/route'
 import type { ChatEvent } from '../api/agent-chat/route'
 
@@ -135,6 +139,86 @@ function StepCard({ step }: { step: Step }) {
   )
 }
 
+// ─── Visual components ────────────────────────────────────────────────────────
+
+const CHART_COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4']
+
+interface StatItem { label: string; value: string; color?: string }
+interface ChartSpec { type: 'bar' | 'pie' | 'line'; title?: string; data: Record<string, unknown>[]; xKey?: string; yKey?: string }
+interface CardSpec { title?: string; stats: StatItem[] }
+
+function StatCard({ spec }: { spec: CardSpec }) {
+  return (
+    <div className="rounded-xl border border-zinc-700 bg-zinc-900/60 p-4 my-2 space-y-3">
+      {spec.title && <div className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">{spec.title}</div>}
+      <div className="flex flex-wrap gap-4">
+        {spec.stats.map((s, i) => (
+          <div key={i} className="flex flex-col gap-0.5">
+            <span className="text-[11px] font-mono text-zinc-500">{s.label}</span>
+            <span className={`text-xl font-bold ${
+              s.color === 'green' ? 'text-green-400' :
+              s.color === 'red'   ? 'text-red-400'   :
+              s.color === 'amber' ? 'text-amber-400' : 'text-white'
+            }`}>{s.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function ChartVisual({ spec }: { spec: ChartSpec }) {
+  const xKey = spec.xKey ?? 'name'
+  const yKey = spec.yKey ?? 'value'
+
+  return (
+    <div className="rounded-xl border border-zinc-700 bg-zinc-900/60 p-4 my-2">
+      {spec.title && <div className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">{spec.title}</div>}
+      <ResponsiveContainer width="100%" height={200}>
+        {spec.type === 'pie' ? (
+          <PieChart>
+            <Pie data={spec.data} dataKey={yKey} nameKey={xKey} cx="50%" cy="50%" outerRadius={75} label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`} labelLine={false}>
+              {spec.data.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+            </Pie>
+            <Tooltip contentStyle={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: 8, fontSize: 12 }} />
+            <Legend wrapperStyle={{ fontSize: 11, color: '#a1a1aa' }} />
+          </PieChart>
+        ) : spec.type === 'line' ? (
+          <LineChart data={spec.data}>
+            <XAxis dataKey={xKey} tick={{ fill: '#71717a', fontSize: 11 }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill: '#71717a', fontSize: 11 }} axisLine={false} tickLine={false} />
+            <Tooltip contentStyle={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: 8, fontSize: 12 }} />
+            <Line type="monotone" dataKey={yKey} stroke="#6366f1" strokeWidth={2} dot={{ fill: '#6366f1', r: 3 }} />
+          </LineChart>
+        ) : (
+          <BarChart data={spec.data}>
+            <XAxis dataKey={xKey} tick={{ fill: '#71717a', fontSize: 11 }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill: '#71717a', fontSize: 11 }} axisLine={false} tickLine={false} />
+            <Tooltip contentStyle={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: 8, fontSize: 12 }} />
+            <Bar dataKey={yKey} radius={[4, 4, 0, 0]}>
+              {spec.data.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+            </Bar>
+          </BarChart>
+        )}
+      </ResponsiveContainer>
+    </div>
+  )
+}
+
+function tryParseVisual(lang: string, raw: string): React.ReactNode | null {
+  try {
+    if (lang === 'card') {
+      const spec = JSON.parse(raw) as CardSpec
+      return <StatCard spec={spec} />
+    }
+    if (lang === 'chart') {
+      const spec = JSON.parse(raw) as ChartSpec
+      return <ChartVisual spec={spec} />
+    }
+  } catch { /* fall through to code block */ }
+  return null
+}
+
 function MarkdownContent({ content }: { content: string }) {
   return (
     <div className="prose-sm">
@@ -151,7 +235,12 @@ function MarkdownContent({ content }: { content: string }) {
         ol: ({ children }) => <ol className="list-decimal list-inside space-y-0.5 mb-2 text-zinc-200">{children}</ol>,
         li: ({ children }) => <li className="leading-relaxed">{children}</li>,
         code: ({ children, className: cls }) => {
-          const isBlock = cls?.includes('language-')
+          const lang = cls?.replace('language-', '') ?? ''
+          if (lang === 'chart' || lang === 'card') {
+            const visual = tryParseVisual(lang, String(children).trim())
+            if (visual) return <>{visual}</>
+          }
+          const isBlock = !!cls?.includes('language-')
           return isBlock
             ? <code className="block bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-xs font-mono text-green-300 overflow-x-auto my-2 whitespace-pre">{children}</code>
             : <code className="bg-zinc-900 border border-zinc-700 rounded px-1.5 py-0.5 text-xs font-mono text-indigo-300">{children}</code>
