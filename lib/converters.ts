@@ -33,6 +33,10 @@ function convertExcel(buffer: Buffer): ConvertedFile {
 }
 
 async function convertPdf(buffer: Buffer): Promise<ConvertedFile> {
-  const pdfParse = (await import('pdf-parse')).default
+  // pdf-parse ESM build exports the function as the module itself (no .default)
+  const pdfParseModule = await import('pdf-parse')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const pdfParse: (buf: Buffer) => Promise<{ text: string }> =
+    (pdfParseModule as any).default ?? (pdfParseModule as any)
   return { sheets: { PDF: (await pdfParse(buffer)).text } }
 }
