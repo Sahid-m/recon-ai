@@ -252,7 +252,7 @@ export default function DashboardPage() {
       <div className="border-b border-zinc-800 px-6 py-3 flex items-center gap-4">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-green-400" />
-          <span className="font-mono text-sm text-zinc-300 font-semibold">readmedb.com</span>
+          <span className="font-mono text-sm text-zinc-300 font-semibold">recon.ai</span>
         </div>
         <span className="text-zinc-700">/</span>
         <span className="text-zinc-400 text-sm font-mono">{firm.firmName}</span>

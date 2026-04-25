@@ -15,7 +15,7 @@ export default function Home() {
 
       {/* Nav */}
       <nav className="flex items-center justify-between px-8 py-5 max-w-4xl mx-auto">
-        <span className="font-semibold text-sm tracking-tight">Recon AI</span>
+        <span className="font-semibold text-sm tracking-tight">recon.ai</span>
         {hasAccount
           ? <Link href="/dashboard" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors">Dashboard →</Link>
           : <Link href="/onboarding" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors">Get started →</Link>
@@ -54,7 +54,7 @@ export default function Home() {
             <div className="p-6 space-y-4">
               <p className="text-[11px] text-zinc-400 font-mono uppercase tracking-widest">You send</p>
               <div className="space-y-1 text-xs text-zinc-500">
-                <div><span className="text-zinc-300 inline-block w-14">To</span>hartley@readmedb.com</div>
+                <div><span className="text-zinc-300 inline-block w-14">To</span>hartley-partners@readmedb.com</div>
                 <div><span className="text-zinc-300 inline-block w-14">Subject</span>Quilter Oct statement</div>
               </div>
               <div className="flex items-center gap-3 border border-zinc-100 rounded-lg p-3 bg-zinc-50">
@@ -160,7 +160,7 @@ export default function Home() {
       {/* Footer */}
       <div className="h-px bg-zinc-100 max-w-4xl mx-auto" />
       <footer className="max-w-4xl mx-auto px-8 py-6 flex items-center justify-between text-xs text-zinc-400">
-        <span>Recon AI · readmedb.com</span>
+        <span>recon.ai</span>
         <div className="flex gap-5">
           <Link href="/chat" className="hover:text-zinc-700 transition-colors">Chat</Link>
           <Link href="/admin" className="hover:text-zinc-700 transition-colors">Admin</Link>
