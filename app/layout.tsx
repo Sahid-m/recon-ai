@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Recon AI — readmedb.com",
+  title: "Recon AI",
   description: "AI-powered income reconciliation for UK IFA firms",
 };
 

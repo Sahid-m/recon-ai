@@ -103,8 +103,31 @@ function StepCard({ step }: { step: Step }) {
         {!!step.result && <span className="text-zinc-600 ml-1">{expanded ? '▴' : '▾'}</span>}
       </button>
       {expanded && !!step.result && (
-        <div className="border-t border-zinc-700 px-3 py-2 text-zinc-400 overflow-x-auto">
-          <pre className="whitespace-pre-wrap break-all text-[11px]">{JSON.stringify(step.result, null, 2)}</pre>
+        <div className="border-t border-zinc-700 px-3 py-2 text-zinc-400 space-y-1">
+          {Object.entries(step.result as Record<string, unknown>).map(([k, v]) => {
+            if (v === null || v === undefined) return null
+            if (Array.isArray(v)) {
+              return (
+                <div key={k} className="text-[11px]">
+                  <span className="text-zinc-500">{k}:</span>
+                  <div className="ml-2 space-y-0.5 mt-0.5">
+                    {(v as unknown[]).slice(0, 8).map((item, i) => (
+                      <div key={i} className="text-zinc-400 truncate">
+                        {typeof item === 'object' ? Object.values(item as Record<string, unknown>).join(' · ') : String(item)}
+                      </div>
+                    ))}
+                    {v.length > 8 && <div className="text-zinc-600">+{v.length - 8} more</div>}
+                  </div>
+                </div>
+              )
+            }
+            return (
+              <div key={k} className="flex gap-2 text-[11px]">
+                <span className="text-zinc-500 shrink-0">{k}:</span>
+                <span className="text-zinc-300 truncate">{String(v)}</span>
+              </div>
+            )
+          })}
         </div>
       )}
       {step.error && <div className="border-t border-red-900 px-3 py-2 text-red-400 text-[11px]">{step.error}</div>}
@@ -175,7 +198,7 @@ function MessageBubble({ msg }: { msg: Message }) {
       <div className="max-w-[85%] space-y-1">
         <div className="flex items-center gap-2 text-xs text-zinc-500 font-mono mb-1">
           <span className="w-5 h-5 rounded-full bg-green-500/20 border border-green-500/40 flex items-center justify-center text-green-400 text-[10px]">A</span>
-          <span>recon-agent</span>
+          <span>recon.ai</span>
         </div>
         <div className={`rounded-2xl rounded-tl-sm px-4 py-2.5 text-sm leading-relaxed ${
           msg.error ? 'bg-red-950/40 border border-red-800/40 text-red-200' : 'bg-zinc-800 border border-zinc-700 text-zinc-100'
@@ -426,7 +449,7 @@ export default function ChatPage() {
         {/* Header */}
         <div className="flex items-center gap-3 px-5 py-3.5 border-b border-zinc-800 bg-zinc-950/80 backdrop-blur shrink-0">
           <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-          <span className="font-mono text-sm font-semibold text-zinc-200">readmedb.com</span>
+          <span className="font-mono text-sm font-semibold text-zinc-200">recon.ai</span>
           {firm && <span className="text-zinc-600 text-xs font-mono">/ {firm.firmName}</span>}
           <div className="ml-auto flex items-center gap-3">
             {parsedRows && <span className="text-xs font-mono text-indigo-400 bg-indigo-950/40 border border-indigo-900/40 px-2 py-0.5 rounded">{parsedRows.length} rows loaded</span>}

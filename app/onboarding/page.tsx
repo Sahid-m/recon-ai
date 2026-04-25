@@ -146,7 +146,7 @@ export default function OnboardingPage() {
           <div className="w-6 h-6 rounded-md bg-black flex items-center justify-center">
             <span className="text-white text-xs font-bold">R</span>
           </div>
-          <span className="font-semibold text-gray-900 text-sm">readmedb.com</span>
+          <span className="font-semibold text-gray-900 text-sm">recon.ai</span>
         </div>
         <span className="text-xs text-gray-400">Step {step} of 3</span>
       </div>
