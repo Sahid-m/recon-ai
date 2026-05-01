@@ -65,7 +65,9 @@ function parseLatestFromHistory(markdown: string): (ReconcileResult & { statemen
 
   const totalExpected = extractValue('Expected')
   const totalReceived = extractValue('Received')
-  const gap = extractValue('Gap')
+  const rawGap = extractValue('Gap')
+  // Recompute sign: if received > expected the gap is negative (overpaid)
+  const gap = totalReceived > totalExpected ? -rawGap : rawGap
   const autoCount = extractCount('Auto-matched')
   const suggestedCount = extractCount('Suggested')
   const unmatchedCount = extractCount('Unmatched')
@@ -419,7 +421,7 @@ export default function DashboardPage() {
             <div className="grid grid-cols-3 gap-4">
               {[
                 { label: 'Expected',  value: fmt(summary.totalExpected),        sub: `${firm.clients.length} client records`,           accent: '#6366f1', bg: 'rgba(99,102,241,0.06)'  },
-                { label: 'Received',  value: fmt(summary.totalReceived),        sub: `${result!.matches.length} rows parsed`,            accent: '#10b981', bg: 'rgba(16,185,129,0.06)'  },
+                { label: 'Received',  value: fmt(summary.totalReceived),        sub: `${summary.autoCount + summary.suggestedCount + summary.unmatchedCount} rows parsed`, accent: '#10b981', bg: 'rgba(16,185,129,0.06)'  },
                 { label: 'Gap',       value: fmt(Math.abs(summary.gap)),        sub: summary.gap > 0 ? 'shortfall' : summary.gap < 0 ? 'overpaid' : 'balanced', accent: summary.gap === 0 ? '#10b981' : '#f59e0b', bg: summary.gap === 0 ? 'rgba(16,185,129,0.06)' : 'rgba(245,158,11,0.06)' },
               ].map(card => (
                 <div key={card.label} className="rounded-xl p-5 border" style={{ background: card.bg, borderColor: '#1C2330' }}>
