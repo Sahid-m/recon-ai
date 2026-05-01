@@ -26,7 +26,8 @@ export async function POST(req: NextRequest) {
   const suggested = matches.filter(m => m.tier === 'suggested')
   const unmatched = matches.filter(m => m.tier === 'unmatched')
   const totalReceived = matches.reduce((s, m) => s + m.parsed.grossAmount, 0)
-  const totalExpected = matches.reduce((s, m) => s + (m.client?.expectedMonthlyFee ?? 0), 0)
+  // Expected = sum of ALL firm client fees, not just matched rows
+  const totalExpected = (clients ?? []).reduce((s, c) => s + c.expectedMonthlyFee, 0)
   const gap = totalExpected - totalReceived
 
   // Variance rows — paid but wrong amount

@@ -76,6 +76,7 @@ export async function appendReconciliationToFirm(
   const fileName = firmFileName(firmName)
   const existing = await rdbRead(fileName)
 
+  const gapDirection = entry.gap > 0 ? 'shortfall' : entry.gap < 0 ? 'overpaid' : 'balanced'
   const section = `
 ---
 
@@ -86,7 +87,7 @@ export async function appendReconciliationToFirm(
 |---|---|
 | Expected | £${entry.totalExpected.toFixed(2)} |
 | Received | £${entry.totalReceived.toFixed(2)} |
-| Gap | £${entry.gap.toFixed(2)} |
+| Gap | £${Math.abs(entry.gap).toFixed(2)} (${gapDirection}) |
 | Auto-matched | ${entry.autoCount} |
 | Suggested | ${entry.suggestedCount} |
 | Unmatched | ${entry.unmatchedCount} |
