@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useRef, useEffect, useCallback, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import * as XLSX from 'xlsx'
 
 interface ClientRecord {
@@ -47,8 +47,9 @@ function slugify(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 30)
 }
 
-export default function OnboardingPage() {
+function OnboardingInner() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [step, setStep] = useState<1 | 2 | 3>(1)
   const [firmName, setFirmName] = useState('')
   const [clients, setClients] = useState<ClientRecord[]>([])
@@ -58,6 +59,47 @@ export default function OnboardingPage() {
   const [copied, setCopied] = useState(false)
   const [dragOver, setDragOver] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+
+  // Intelliflo OAuth state
+  const [intellifloConnected, setIntelliFioConnected] = useState(false)
+  const [intellifloLoading, setIntelliFioLoading] = useState(false)
+  const [intellifloError, setIntelliFioError] = useState('')
+
+  // After OAuth callback, fetch clients automatically
+  const fetchIntelliFioClients = useCallback(async () => {
+    setIntelliFioLoading(true)
+    setIntelliFioError('')
+    try {
+      const res = await fetch('/api/intelliflo/clients')
+      if (res.status === 401) {
+        setIntelliFioError('Session expired — please reconnect')
+        setIntelliFioLoading(false)
+        return
+      }
+      if (!res.ok) throw new Error(await res.text())
+      const data = await res.json() as { clients: ClientRecord[]; count: number }
+      if (data.clients.length > 0) {
+        setClients(data.clients)
+        setIntelliFioConnected(true)
+      } else {
+        setIntelliFioError('Connected but no clients found in your Intelliflo account')
+      }
+    } catch (e) {
+      setIntelliFioError(`Failed to load clients: ${e}`)
+    }
+    setIntelliFioLoading(false)
+  }, [])
+
+  useEffect(() => {
+    if (searchParams.get('intelliflo') === 'connected') {
+      setImportMethod('crm')
+      fetchIntelliFioClients()
+    }
+    if (searchParams.get('error')) {
+      setImportMethod('crm')
+      setIntelliFioError(`Intelliflo error: ${searchParams.get('error')}`)
+    }
+  }, [searchParams, fetchIntelliFioClients])
 
   // Transact API connection state
   const [showTransact, setShowTransact] = useState(false)
@@ -230,29 +272,64 @@ export default function OnboardingPage() {
                     </button>
                     {importMethod === 'crm' && (
                       <div className="border-t divide-y" style={{ borderColor: '#1C2330' }}>
-                        {CRM_OPTIONS.map(crm => (
-                          <button key={crm.id}
-                            onClick={() => { setConnectingCrm(crm.id); setTimeout(() => { setConnectingCrm(null); setClients(DEMO_CLIENTS) }, 2200) }}
-                            disabled={!!connectingCrm}
-                            className="w-full flex items-center gap-4 px-5 py-3.5 hover:bg-zinc-900/40 transition-colors disabled:opacity-60 text-left"
-                            style={{ borderColor: '#1C2330' }}>
-                            <span className="text-lg w-7 text-center">{crm.logo}</span>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-zinc-200">{crm.name}</p>
-                              <p className="text-xs text-zinc-600">{crm.desc}</p>
+                        {CRM_OPTIONS.map(crm => {
+                          const isIntelliFlo = crm.id === 'intelliflo'
+                          const isRealOAuth = isIntelliFlo && !!process.env.NEXT_PUBLIC_INTELLIFLO_ENABLED
+
+                          return (
+                            <div key={crm.id} className="border-b last:border-0" style={{ borderColor: '#1C2330' }}>
+                              <button
+                                onClick={() => {
+                                  if (isIntelliFlo) {
+                                    // Real OAuth — redirect to auth endpoint
+                                    window.location.href = '/api/auth/intelliflo'
+                                    return
+                                  }
+                                  // Other CRMs — demo simulation
+                                  setConnectingCrm(crm.id)
+                                  setTimeout(() => { setConnectingCrm(null); setClients(DEMO_CLIENTS) }, 2200)
+                                }}
+                                disabled={!!connectingCrm || intellifloLoading}
+                                className="w-full flex items-center gap-4 px-5 py-3.5 hover:bg-zinc-900/40 transition-colors disabled:opacity-60 text-left"
+                              >
+                                <span className="text-lg w-7 text-center">{crm.logo}</span>
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-sm font-medium text-zinc-200">{crm.name}</p>
+                                    {isIntelliFlo && (
+                                      <span className="text-[9px] font-mono text-emerald-400 bg-emerald-950/40 border border-emerald-900/40 px-1.5 py-0.5 rounded-full">
+                                        Real OAuth
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-zinc-600">{isIntelliFlo ? 'OpenID Connect — live client data' : crm.desc}</p>
+                                </div>
+                                {(connectingCrm === crm.id || (isIntelliFlo && intellifloLoading)) ? (
+                                  <div className="flex items-center gap-2 text-xs text-indigo-400 font-mono">
+                                    <span className="w-3 h-3 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+                                    {isIntelliFlo ? 'Loading clients…' : 'Connecting…'}
+                                  </div>
+                                ) : intellifloConnected && isIntelliFlo ? (
+                                  <span className="text-xs text-emerald-400 font-mono">✓ Connected</span>
+                                ) : (
+                                  <span className="text-xs text-zinc-600 border rounded-lg px-3 py-1 hover:border-zinc-500 hover:text-zinc-400 transition-colors font-mono" style={{ borderColor: '#1C2330' }}>
+                                    {isIntelliFlo ? 'Authorise →' : 'Connect'}
+                                  </span>
+                                )}
+                              </button>
+
+                              {/* Intelliflo error / status */}
+                              {isIntelliFlo && intellifloError && (
+                                <div className="px-5 pb-3 text-xs text-red-400 font-mono">{intellifloError}</div>
+                              )}
+                              {isIntelliFlo && intellifloConnected && clients.length > 0 && (
+                                <div className="px-5 pb-3 text-xs text-emerald-500 font-mono">
+                                  {clients.length} clients imported from Intelliflo
+                                </div>
+                              )}
                             </div>
-                            {connectingCrm === crm.id ? (
-                              <div className="flex items-center gap-2 text-xs text-indigo-400 font-mono">
-                                <span className="w-3 h-3 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
-                                Connecting…
-                              </div>
-                            ) : (
-                              <span className="text-xs text-zinc-600 border rounded-lg px-3 py-1 hover:border-zinc-500 hover:text-zinc-400 transition-colors font-mono" style={{ borderColor: '#1C2330' }}>
-                                Connect
-                              </span>
-                            )}
-                          </button>
-                        ))}
+                          )
+                        })}
                       </div>
                     )}
                   </div>
@@ -444,4 +521,8 @@ export default function OnboardingPage() {
       </div>
     </div>
   )
+}
+
+export default function OnboardingPage() {
+  return <Suspense><OnboardingInner /></Suspense>
 }
