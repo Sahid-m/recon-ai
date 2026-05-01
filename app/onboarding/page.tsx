@@ -139,30 +139,36 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
-      {/* Minimal top bar */}
-      <div className="flex items-center justify-between px-8 py-5 border-b border-gray-100">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-md bg-black flex items-center justify-center">
-            <span className="text-white text-xs font-bold">R</span>
+    <div className="min-h-screen flex flex-col" style={{ background: '#080A0C', color: '#E2E8F0' }}>
+      {/* Top bar */}
+      <div className="flex items-center justify-between px-8 py-5 border-b" style={{ borderColor: '#1C2330' }}>
+        <div className="flex items-center gap-2.5">
+          <div className="w-6 h-6 rounded-md bg-indigo-600 flex items-center justify-center shadow-sm shadow-indigo-500/30">
+            <div className="w-2.5 h-2.5 rounded-sm bg-white/90" />
           </div>
-          <span className="font-semibold text-gray-900 text-sm">recon.ai</span>
+          <span className="font-mono text-sm font-semibold text-zinc-200">recon.ai</span>
         </div>
-        <span className="text-xs text-gray-400">Step {step} of 3</span>
+        {/* Step indicator */}
+        <div className="flex items-center gap-2">
+          {[1, 2, 3].map(n => (
+            <div key={n} className={`h-1.5 rounded-full transition-all duration-300 ${n === step ? 'w-6 bg-indigo-500' : n < step ? 'w-4 bg-indigo-700' : 'w-4 bg-zinc-800'}`} />
+          ))}
+          <span className="text-xs font-mono text-zinc-600 ml-1">{step}/3</span>
+        </div>
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-16">
         <div className="w-full max-w-md">
 
-          {/* Step 1 — Firm name */}
+          {/* Step 1 */}
           {step === 1 && (
             <div className="space-y-8">
               <div className="space-y-2">
-                <p className="text-xs font-medium text-gray-400 uppercase tracking-widest">Step 1 of 3</p>
-                <h1 className="text-3xl font-bold text-gray-900 leading-tight">
+                <p className="text-[10px] font-mono text-zinc-600 uppercase tracking-widest">Step 1 of 3</p>
+                <h1 className="text-3xl font-bold text-zinc-50 leading-tight">
                   What&apos;s your firm called?
                 </h1>
-                <p className="text-gray-500">
+                <p className="text-zinc-500 text-sm leading-relaxed">
                   We&apos;ll set up your account and generate your unique email address.
                 </p>
               </div>
@@ -174,84 +180,74 @@ export default function OnboardingPage() {
                 onChange={e => setFirmName(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && firmName.trim() && setStep(2)}
                 placeholder="Smith Wealth Management"
-                className="w-full text-xl border-0 border-b-2 border-gray-200 focus:border-black outline-none pb-3 placeholder-gray-300 transition-colors bg-transparent text-gray-900"
+                className="w-full text-xl border-0 border-b-2 outline-none pb-3 bg-transparent placeholder-zinc-700 transition-colors"
+                style={{ borderColor: firmName.trim() ? '#6366f1' : '#1C2330', color: '#E2E8F0' }}
               />
 
               {firmName.trim() && (
-                <p className="text-sm text-gray-400">
-                  Your address will be{' '}
-                  <span className="font-mono text-gray-700 bg-gray-100 px-1.5 py-0.5 rounded">{emailAddress}</span>
+                <p className="text-xs text-zinc-500 font-mono">
+                  Your address →{' '}
+                  <span className="text-indigo-400 bg-indigo-950/40 border border-indigo-900/40 px-1.5 py-0.5 rounded">{emailAddress}</span>
                 </p>
               )}
 
               <button
                 onClick={() => setStep(2)}
                 disabled={!firmName.trim()}
-                className="w-full bg-black text-white font-medium py-3.5 rounded-xl text-sm disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-800 transition-colors"
+                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-3.5 rounded-xl text-sm disabled:opacity-30 disabled:cursor-not-allowed transition-all hover:shadow-md hover:shadow-indigo-500/20"
               >
-                Continue
+                Continue →
               </button>
             </div>
           )}
 
-          {/* Step 2 — Client import */}
+          {/* Step 2 */}
           {step === 2 && (
-            <div className="space-y-8">
+            <div className="space-y-6">
               <div className="space-y-2">
-                <p className="text-xs font-medium text-gray-400 uppercase tracking-widest">Step 2 of 3</p>
-                <h1 className="text-3xl font-bold text-gray-900 leading-tight">
-                  Import your clients
-                </h1>
-                <p className="text-gray-500">
+                <p className="text-[10px] font-mono text-zinc-600 uppercase tracking-widest">Step 2 of 3</p>
+                <h1 className="text-3xl font-bold text-zinc-50 leading-tight">Import your clients</h1>
+                <p className="text-zinc-500 text-sm leading-relaxed">
                   We match income against this to catch missing or wrong payments.
                 </p>
               </div>
 
               {clients.length === 0 ? (
-                <div className="space-y-3">
-                  {/* CRM connect */}
-                  <div className="border border-gray-200 rounded-2xl overflow-hidden">
-                    <button
-                      onClick={() => setImportMethod(importMethod === 'crm' ? null : 'crm')}
-                      className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors"
-                    >
+                <div className="space-y-2.5">
+                  {/* CRM */}
+                  <div className="rounded-2xl overflow-hidden border" style={{ borderColor: '#1C2330' }}>
+                    <button onClick={() => setImportMethod(importMethod === 'crm' ? null : 'crm')}
+                      className="w-full flex items-center justify-between px-5 py-4 transition-colors text-left"
+                      style={{ background: importMethod === 'crm' ? '#0D1117' : 'transparent' }}>
                       <div className="flex items-center gap-3">
-                        <span className="text-xl">🔗</span>
-                        <div className="text-left">
-                          <p className="text-sm font-semibold text-gray-900">Connect your CRM</p>
-                          <p className="text-xs text-gray-400">Intelliflo, Xplan, Salesforce, Dynamics</p>
+                        <div className="w-8 h-8 rounded-lg border flex items-center justify-center text-sm" style={{ borderColor: '#1C2330', background: '#131920' }}>🔗</div>
+                        <div>
+                          <p className="text-sm font-semibold text-zinc-200">Connect your CRM</p>
+                          <p className="text-xs text-zinc-600">Intelliflo, Xplan, Salesforce, Dynamics</p>
                         </div>
                       </div>
-                      <span className="text-gray-300 text-sm">{importMethod === 'crm' ? '▴' : '▾'}</span>
+                      <span className="text-zinc-700 text-xs font-mono">{importMethod === 'crm' ? '▴' : '▾'}</span>
                     </button>
-
                     {importMethod === 'crm' && (
-                      <div className="border-t border-gray-100 divide-y divide-gray-100">
+                      <div className="border-t divide-y" style={{ borderColor: '#1C2330' }}>
                         {CRM_OPTIONS.map(crm => (
-                          <button
-                            key={crm.id}
-                            onClick={() => {
-                              setConnectingCrm(crm.id)
-                              setTimeout(() => {
-                                setConnectingCrm(null)
-                                setClients(DEMO_CLIENTS)
-                              }, 2200)
-                            }}
+                          <button key={crm.id}
+                            onClick={() => { setConnectingCrm(crm.id); setTimeout(() => { setConnectingCrm(null); setClients(DEMO_CLIENTS) }, 2200) }}
                             disabled={!!connectingCrm}
-                            className="w-full flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50 transition-colors disabled:opacity-60"
-                          >
-                            <span className="text-xl w-7 text-center">{crm.logo}</span>
-                            <div className="text-left flex-1">
-                              <p className="text-sm font-medium text-gray-800">{crm.name}</p>
-                              <p className="text-xs text-gray-400">{crm.desc}</p>
+                            className="w-full flex items-center gap-4 px-5 py-3.5 hover:bg-zinc-900/40 transition-colors disabled:opacity-60 text-left"
+                            style={{ borderColor: '#1C2330' }}>
+                            <span className="text-lg w-7 text-center">{crm.logo}</span>
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-zinc-200">{crm.name}</p>
+                              <p className="text-xs text-zinc-600">{crm.desc}</p>
                             </div>
                             {connectingCrm === crm.id ? (
-                              <div className="flex items-center gap-2 text-xs text-blue-500">
-                                <span className="w-3.5 h-3.5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                              <div className="flex items-center gap-2 text-xs text-indigo-400 font-mono">
+                                <span className="w-3 h-3 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
                                 Connecting…
                               </div>
                             ) : (
-                              <span className="text-xs text-gray-400 border border-gray-200 px-3 py-1 rounded-lg hover:border-gray-300 transition-colors">
+                              <span className="text-xs text-zinc-600 border rounded-lg px-3 py-1 hover:border-zinc-500 hover:text-zinc-400 transition-colors font-mono" style={{ borderColor: '#1C2330' }}>
                                 Connect
                               </span>
                             )}
@@ -261,128 +257,116 @@ export default function OnboardingPage() {
                     )}
                   </div>
 
-                  {/* Excel upload */}
-                  <div className="border border-gray-200 rounded-2xl overflow-hidden">
-                    <button
-                      onClick={() => setImportMethod(importMethod === 'excel' ? null : 'excel')}
-                      className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors"
-                    >
+                  {/* Excel */}
+                  <div className="rounded-2xl overflow-hidden border" style={{ borderColor: '#1C2330' }}>
+                    <button onClick={() => setImportMethod(importMethod === 'excel' ? null : 'excel')}
+                      className="w-full flex items-center justify-between px-5 py-4 transition-colors text-left"
+                      style={{ background: importMethod === 'excel' ? '#0D1117' : 'transparent' }}>
                       <div className="flex items-center gap-3">
-                        <span className="text-xl">📂</span>
-                        <div className="text-left">
-                          <p className="text-sm font-semibold text-gray-900">Upload Excel / CSV</p>
-                          <p className="text-xs text-gray-400">Or download our template to get started</p>
+                        <div className="w-8 h-8 rounded-lg border flex items-center justify-center text-sm" style={{ borderColor: '#1C2330', background: '#131920' }}>📂</div>
+                        <div>
+                          <p className="text-sm font-semibold text-zinc-200">Upload Excel / CSV</p>
+                          <p className="text-xs text-zinc-600">Or download our template to get started</p>
                         </div>
                       </div>
-                      <span className="text-gray-300 text-sm">{importMethod === 'excel' ? '▴' : '▾'}</span>
+                      <span className="text-zinc-700 text-xs font-mono">{importMethod === 'excel' ? '▴' : '▾'}</span>
                     </button>
-
                     {importMethod === 'excel' && (
-                      <div className="border-t border-gray-100 p-4 space-y-3">
+                      <div className="border-t p-4 space-y-3" style={{ borderColor: '#1C2330' }}>
                         <div
                           onDragOver={e => { e.preventDefault(); setDragOver(true) }}
                           onDragLeave={() => setDragOver(false)}
                           onDrop={e => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files[0]; if (f) handleFile(f) }}
                           onClick={() => fileRef.current?.click()}
-                          className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
-                            dragOver ? 'border-black bg-gray-50' : 'border-gray-200 hover:border-gray-300'
-                          }`}
-                        >
-                          <p className="text-sm text-gray-600">Drop file here or click to browse</p>
+                          className="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all"
+                          style={{ borderColor: dragOver ? '#6366f1' : '#1C2330', background: dragOver ? 'rgba(99,102,241,0.05)' : '#0D1117' }}>
+                          <p className="text-sm text-zinc-500">Drop file here or click to browse</p>
+                          <p className="text-xs text-zinc-700 mt-1 font-mono">.xlsx · .xls · .csv</p>
                           <input ref={fileRef} type="file" className="hidden" accept=".xlsx,.xls,.csv" onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = '' }} />
                         </div>
-                        {importError && <p className="text-sm text-red-500">{importError}</p>}
-                        <button onClick={downloadTemplate} className="w-full text-xs text-gray-400 hover:text-gray-700 py-2 transition-colors">
+                        {importError && <p className="text-xs text-red-400 font-mono">{importError}</p>}
+                        <button onClick={downloadTemplate} className="w-full text-xs text-zinc-600 hover:text-zinc-300 py-2 transition-colors font-mono">
                           Download template ↓
                         </button>
                       </div>
                     )}
                   </div>
 
-                  {/* Demo shortcut */}
-                  <button
-                    onClick={() => setClients(DEMO_CLIENTS)}
-                    className="w-full text-xs text-gray-400 hover:text-gray-600 py-2 transition-colors"
-                  >
+                  <button onClick={() => setClients(DEMO_CLIENTS)}
+                    className="w-full text-xs text-zinc-600 hover:text-zinc-400 py-2 transition-colors font-mono">
                     Use demo client data →
                   </button>
                 </div>
               ) : (
-                <div className="bg-green-50 border border-green-200 rounded-2xl px-5 py-4 flex items-center gap-4">
-                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center text-green-700 font-bold text-base shrink-0">
+                <div className="rounded-2xl px-5 py-4 flex items-center gap-4 border" style={{ background: 'rgba(5,46,22,0.2)', borderColor: 'rgba(22,101,52,0.3)' }}>
+                  <div className="w-10 h-10 rounded-xl bg-emerald-950/60 border border-emerald-900/50 flex items-center justify-center text-emerald-400 font-bold font-mono text-sm shrink-0">
                     {clients.length}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-gray-900">{clients.length} clients imported</p>
-                    <p className="text-sm text-gray-500 truncate">
-                      {clients.slice(0, 3).map(c => c.name.split(' ')[0]).join(', ')}{clients.length > 3 ? ` + ${clients.length - 3} more` : ''}
+                    <p className="font-semibold text-zinc-200">{clients.length} clients imported</p>
+                    <p className="text-xs text-zinc-500 truncate font-mono mt-0.5">
+                      {clients.slice(0, 3).map(c => c.name.split(' ')[0]).join(', ')}{clients.length > 3 ? ` +${clients.length - 3} more` : ''}
                     </p>
                   </div>
-                  <button onClick={() => { setClients([]); setImportMethod(null) }} className="text-xs text-gray-400 hover:text-gray-600 shrink-0 transition-colors">
+                  <button onClick={() => { setClients([]); setImportMethod(null) }}
+                    className="text-xs text-zinc-600 hover:text-zinc-300 shrink-0 transition-colors font-mono">
                     Change
                   </button>
                 </div>
               )}
 
-              {/* Optional: Connect Transact API */}
-              <div className="border border-gray-200 rounded-2xl overflow-hidden">
-                <button
-                  onClick={() => setShowTransact(v => !v)}
-                  className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors"
-                >
+              {/* Transact */}
+              <div className="rounded-2xl overflow-hidden border" style={{ borderColor: '#1C2330' }}>
+                <button onClick={() => setShowTransact(v => !v)}
+                  className="w-full flex items-center justify-between px-5 py-4 transition-colors text-left">
                   <div className="flex items-center gap-3">
-                    <span className="text-xl">⚡</span>
-                    <div className="text-left">
-                      <p className="text-sm font-semibold text-gray-900">Connect Transact API <span className="ml-1.5 text-[10px] font-mono text-gray-400 border border-gray-200 px-1.5 py-0.5 rounded">optional</span></p>
-                      <p className="text-xs text-gray-400">Pull income automatically — no statement forwarding needed</p>
+                    <div className="w-8 h-8 rounded-lg border flex items-center justify-center text-sm" style={{ borderColor: '#1C2330', background: '#131920' }}>⚡</div>
+                    <div>
+                      <p className="text-sm font-semibold text-zinc-200">
+                        Connect Transact API
+                        <span className="ml-2 text-[10px] font-mono text-zinc-600 border rounded px-1.5 py-0.5" style={{ borderColor: '#1C2330' }}>optional</span>
+                      </p>
+                      <p className="text-xs text-zinc-600">Pull income automatically</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {transactConnected && <span className="text-[10px] font-mono text-green-600 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">● Connected</span>}
-                    <span className="text-gray-300 text-sm">{showTransact ? '▴' : '▾'}</span>
+                    {transactConnected && <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/40 border border-emerald-900/40 px-2 py-0.5 rounded-full">● Connected</span>}
+                    <span className="text-zinc-700 text-xs font-mono">{showTransact ? '▴' : '▾'}</span>
                   </div>
                 </button>
-
                 {showTransact && (
-                  <div className="border-t border-gray-100 p-4 space-y-3">
+                  <div className="border-t p-4 space-y-3" style={{ borderColor: '#1C2330', background: '#0D1117' }}>
                     {transactConnected ? (
-                      <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl px-4 py-3">
-                        <span className="text-green-600 text-lg">✅</span>
-                        <div>
-                          <p className="text-sm font-semibold text-green-800">Transact connected</p>
-                          <p className="text-xs text-green-600">Adviser ID: {transactAdviserId} — income will pull automatically</p>
+                      <div className="flex items-center gap-3 rounded-xl px-4 py-3 border" style={{ background: 'rgba(5,46,22,0.2)', borderColor: 'rgba(22,101,52,0.3)' }}>
+                        <span className="text-emerald-400">✓</span>
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold text-emerald-300">Transact connected</p>
+                          <p className="text-xs text-emerald-600 font-mono">Adviser ID: {transactAdviserId}</p>
                         </div>
-                        <button onClick={() => { setTransactConnected(false); setTransactAdviserId(''); setTransactApiKey('') }} className="ml-auto text-xs text-gray-400 hover:text-gray-600 transition-colors">Disconnect</button>
+                        <button onClick={() => { setTransactConnected(false); setTransactAdviserId(''); setTransactApiKey('') }}
+                          className="text-xs text-zinc-600 hover:text-zinc-300 transition-colors font-mono">
+                          Disconnect
+                        </button>
                       </div>
                     ) : (
                       <>
-                        <input
-                          type="text"
-                          value={transactAdviserId}
-                          onChange={e => setTransactAdviserId(e.target.value)}
+                        <input type="text" value={transactAdviserId} onChange={e => setTransactAdviserId(e.target.value)}
                           placeholder="Adviser ID (e.g. ADV-12345)"
-                          className="w-full text-sm border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:border-black transition-colors placeholder-gray-300"
-                        />
-                        <input
-                          type="password"
-                          value={transactApiKey}
-                          onChange={e => setTransactApiKey(e.target.value)}
+                          className="w-full text-sm rounded-xl px-4 py-2.5 border outline-none transition-colors font-mono placeholder-zinc-700"
+                          style={{ background: '#131920', borderColor: '#1C2330', color: '#E2E8F0' }}
+                          onFocus={e => e.currentTarget.style.borderColor = '#6366f1'}
+                          onBlur={e => e.currentTarget.style.borderColor = '#1C2330'} />
+                        <input type="password" value={transactApiKey} onChange={e => setTransactApiKey(e.target.value)}
                           placeholder="API Key"
-                          className="w-full text-sm border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:border-black transition-colors placeholder-gray-300"
-                        />
-                        <button
-                          onClick={connectTransact}
-                          disabled={!transactAdviserId.trim() || !transactApiKey.trim() || transactConnecting}
-                          className="w-full flex items-center justify-center gap-2 bg-black text-white text-sm font-medium py-2.5 rounded-xl disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-800 transition-colors"
-                        >
-                          {transactConnecting ? (
-                            <>
-                              <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                              Connecting…
-                            </>
-                          ) : 'Connect Transact'}
+                          className="w-full text-sm rounded-xl px-4 py-2.5 border outline-none transition-colors font-mono placeholder-zinc-700"
+                          style={{ background: '#131920', borderColor: '#1C2330', color: '#E2E8F0' }}
+                          onFocus={e => e.currentTarget.style.borderColor = '#6366f1'}
+                          onBlur={e => e.currentTarget.style.borderColor = '#1C2330'} />
+                        <button onClick={connectTransact} disabled={!transactAdviserId.trim() || !transactApiKey.trim() || transactConnecting}
+                          className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium py-2.5 rounded-xl disabled:opacity-30 transition-colors">
+                          {transactConnecting ? <><span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />Connecting…</> : 'Connect Transact'}
                         </button>
-                        <p className="text-[11px] text-gray-400 text-center">Your credentials are stored locally and never shared</p>
+                        <p className="text-[11px] text-zinc-700 text-center font-mono">Credentials stored locally, never shared</p>
                       </>
                     )}
                   </div>
@@ -390,79 +374,67 @@ export default function OnboardingPage() {
               </div>
 
               <div className="flex gap-3">
-                <button
-                  onClick={() => setStep(1)}
-                  className="px-5 py-3.5 rounded-xl border border-gray-200 text-sm text-gray-500 hover:border-gray-300 transition-colors"
-                >
+                <button onClick={() => setStep(1)}
+                  className="px-5 py-3.5 rounded-xl border text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
+                  style={{ borderColor: '#1C2330' }}>
                   Back
                 </button>
-                <button
-                  onClick={() => setStep(3)}
-                  className="flex-1 bg-black text-white font-medium py-3.5 rounded-xl text-sm hover:bg-gray-800 transition-colors"
-                >
-                  {clients.length > 0 ? `Continue with ${clients.length} clients` : 'Skip for now'}
+                <button onClick={() => setStep(3)}
+                  className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-3.5 rounded-xl text-sm transition-all hover:shadow-md hover:shadow-indigo-500/20">
+                  {clients.length > 0 ? `Continue with ${clients.length} clients →` : 'Skip for now →'}
                 </button>
               </div>
             </div>
           )}
 
-          {/* Step 3 — The magic moment */}
+          {/* Step 3 */}
           {step === 3 && (
             <div className="space-y-8">
               <div className="space-y-2">
-                <p className="text-xs font-medium text-gray-400 uppercase tracking-widest">Step 3 of 3</p>
-                <h1 className="text-3xl font-bold text-gray-900 leading-tight">
-                  You&apos;re done.
-                </h1>
-                <p className="text-gray-500">
-                  This is your email address. Forward any platform statement to it — we&apos;ll reconcile it and reply with a report.
+                <p className="text-[10px] font-mono text-zinc-600 uppercase tracking-widest">Step 3 of 3</p>
+                <h1 className="text-3xl font-bold text-zinc-50 leading-tight">You&apos;re live.</h1>
+                <p className="text-zinc-500 text-sm leading-relaxed">
+                  Forward any platform statement to your address — we&apos;ll reconcile it and reply with a report in ~40 seconds.
                 </p>
               </div>
 
-              {/* The email — hero moment */}
-              <div className="bg-gray-950 rounded-2xl px-6 py-5">
-                <p className="text-xs text-gray-500 mb-2 font-mono">YOUR RECON AI ADDRESS</p>
+              {/* Email hero */}
+              <div className="rounded-2xl px-6 py-5 border" style={{ background: '#0D1117', borderColor: '#1C2330' }}>
+                <p className="text-[10px] text-zinc-600 mb-3 font-mono uppercase tracking-widest">Your recon.ai address</p>
                 <div className="flex items-center justify-between gap-3">
-                  <span className="font-mono text-white text-lg tracking-tight break-all">{emailAddress}</span>
+                  <span className="font-mono text-indigo-300 text-base tracking-tight break-all">{emailAddress}</span>
                   <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(emailAddress)
-                      setCopied(true)
-                      setTimeout(() => setCopied(false), 2000)
-                    }}
+                    onClick={() => { navigator.clipboard.writeText(emailAddress); setCopied(true); setTimeout(() => setCopied(false), 2000) }}
                     className={`shrink-0 text-xs font-mono px-3 py-1.5 rounded-lg border transition-all ${
-                      copied
-                        ? 'border-green-500 text-green-400 bg-green-950/40'
-                        : 'border-gray-700 text-gray-400 hover:border-gray-500 hover:text-gray-200'
+                      copied ? 'border-emerald-600 text-emerald-400 bg-emerald-950/40' : 'text-zinc-500 hover:text-zinc-300'
                     }`}
-                  >
+                    style={{ borderColor: copied ? undefined : '#1C2330' }}>
                     {copied ? '✓ copied' : 'copy'}
                   </button>
                 </div>
               </div>
 
-              {/* 3-step mini flow */}
+              {/* Flow */}
               <div className="space-y-3">
                 {[
-                  { icon: '📨', text: 'Platform emails you a statement' },
-                  { icon: '↩️', text: `You forward it to ${emailAddress}` },
-                  { icon: '📊', text: 'We reply with your reconciliation report in ~40 seconds' },
-                ].map((item, i) => (
-                  <div key={i} className="flex items-center gap-4 text-sm text-gray-600">
-                    <span className="text-xl w-8 text-center shrink-0">{item.icon}</span>
-                    <span>{item.text}</span>
+                  { n: '1', text: 'Platform sends you a statement', color: '#4A5568' },
+                  { n: '2', text: `Forward it to ${emailAddress}`, color: '#6366f1' },
+                  { n: '3', text: 'Get your reconciliation report back in ~40 seconds', color: '#10b981' },
+                ].map(item => (
+                  <div key={item.n} className="flex items-center gap-4 text-sm">
+                    <div className="w-6 h-6 rounded-full border flex items-center justify-center shrink-0 font-mono text-xs" style={{ borderColor: item.color, color: item.color, background: `${item.color}15` }}>
+                      {item.n}
+                    </div>
+                    <span className="text-zinc-400">{item.text}</span>
                   </div>
                 ))}
               </div>
 
-              <button
-                onClick={finish}
-                className="w-full bg-black text-white font-semibold py-3.5 rounded-xl text-sm hover:bg-gray-800 transition-colors"
-              >
+              <button onClick={finish}
+                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3.5 rounded-xl text-sm transition-all hover:shadow-md hover:shadow-indigo-500/20">
                 Go to dashboard →
               </button>
-
-              <p className="text-center text-xs text-gray-400">
+              <p className="text-center text-xs text-zinc-700 font-mono">
                 You can also upload statements directly from the dashboard
               </p>
             </div>
