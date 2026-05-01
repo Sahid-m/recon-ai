@@ -5,6 +5,7 @@ import { convertFile } from '../../../lib/converters'
 import { getModel } from '../../../lib/model'
 
 export const runtime = 'nodejs'
+export const maxDuration = 60
 
 const ClientSchema = z.object({
   name: z.string(),
@@ -35,10 +36,11 @@ export async function POST(req: NextRequest) {
     .map(([name, csv]) => `=== Sheet: ${name} ===\n${csv}`)
     .join('\n\n')
 
-  const { object } = await generateObject({
-    model: getModel(),
-    schema: OutputSchema,
-    prompt: `Extract a list of financial advisory clients from this spreadsheet or CSV data.
+  try {
+    const { object } = await generateObject({
+      model: getModel(),
+      schema: OutputSchema,
+      prompt: `Extract a list of financial advisory clients from this spreadsheet or CSV data.
 
 The file may use any column naming convention — your job is to identify what each column represents regardless of its label.
 
@@ -57,7 +59,11 @@ Rules:
 
 Data:
 ${fullText}`,
-  })
+    })
 
-  return NextResponse.json({ clients: object.clients, count: object.clients.length })
+    return NextResponse.json({ clients: object.clients, count: object.clients.length })
+  } catch (e) {
+    console.error('parse-clients AI error:', e)
+    return NextResponse.json({ error: `AI parsing failed: ${e instanceof Error ? e.message : String(e)}` }, { status: 500 })
+  }
 }
