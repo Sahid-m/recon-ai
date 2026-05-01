@@ -9,10 +9,10 @@ export const maxDuration = 60
 
 const ClientSchema = z.object({
   name: z.string(),
-  clientId: z.string().default(''),
-  planNumber: z.string().default(''),
-  platform: z.string().default(''),
-  expectedMonthlyFee: z.number().default(0),
+  clientId: z.string(),
+  planNumber: z.string(),
+  platform: z.string(),
+  expectedMonthlyFee: z.number(),
 })
 
 const OutputSchema = z.object({
@@ -46,10 +46,10 @@ The file may use any column naming convention — your job is to identify what e
 
 For each client record extract:
 - name: the client's full name (required — skip rows with no recognisable name)
-- clientId: any client reference or ID number (leave blank if not present)
-- planNumber: any plan, policy, account, or portfolio reference number (leave blank if not present)
-- platform: any investment platform or provider name (leave blank if not present)
-- expectedMonthlyFee: the expected monthly adviser fee in GBP as a plain number — if given annually divide by 12, if quarterly divide by 3, strip £ and commas (default 0 if not present)
+- clientId: any client reference or ID number — use empty string "" if not present
+- planNumber: any plan, policy, account, or portfolio reference number — use empty string "" if not present
+- platform: any investment platform or provider name — use empty string "" if not present
+- expectedMonthlyFee: the expected monthly adviser fee in GBP as a plain number — if given annually divide by 12, if quarterly divide by 3, strip £ and commas — use 0 if not present
 
 Rules:
 - Skip header rows, totals rows, blank rows, and metadata rows
