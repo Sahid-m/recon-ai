@@ -44,8 +44,10 @@ export async function GET(req: NextRequest) {
 
   if (!tokenRes.ok) {
     const detail = await tokenRes.text()
-    console.error('Intelliflo token exchange failed:', detail)
-    return NextResponse.redirect(`${origin}/onboarding?error=token_exchange_failed`)
+    console.error('Intelliflo token exchange failed:', tokenRes.status, detail)
+    return NextResponse.redirect(
+      `${origin}/onboarding?error=${encodeURIComponent(`token_exchange_failed: ${tokenRes.status} ${detail}`)}`
+    )
   }
 
   const tokens = await tokenRes.json() as {
