@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import * as XLSX from 'xlsx'
+import * as XLSX from 'xlsx'  // used for template download only
 
 interface ClientRecord {
   name: string
@@ -14,10 +14,11 @@ interface ClientRecord {
 }
 
 const CRM_OPTIONS = [
-  { id: 'intelliflo', name: 'Intelliflo', logo: '🔷', desc: 'OAuth connection' },
-  { id: 'xplan', name: 'Xplan', logo: '🟦', desc: 'API key' },
-  { id: 'salesforce', name: 'Salesforce', logo: '☁️', desc: 'OAuth connection' },
-  { id: 'dynamics', name: 'Dynamics 365', logo: '🪟', desc: 'OAuth connection' },
+  { id: 'intelliflo', name: 'Intelliflo', logo: '🔷', desc: 'OAuth connection', oauth: true },
+  { id: 'ajbell',     name: 'AJ Bell',    logo: '🔔', desc: 'OAuth connection', oauth: true },
+  { id: 'xplan',      name: 'Xplan',      logo: '🟦', desc: 'API key',          oauth: false },
+  { id: 'salesforce', name: 'Salesforce', logo: '☁️',  desc: 'OAuth connection', oauth: false },
+  { id: 'dynamics',   name: 'Dynamics 365', logo: '🪟', desc: 'OAuth connection', oauth: false },
 ]
 
 const DEMO_CLIENTS: ClientRecord[] = [
@@ -41,6 +42,19 @@ const DEMO_CLIENTS: ClientRecord[] = [
   { name: 'Elizabeth Moorfield', clientId: 'CLI018', planNumber: 'AE-334871', platform: 'Aegon',      expectedMonthlyFee: 920.00 },
   { name: 'Jonathan Barker',     clientId: 'CLI019', planNumber: 'FI-556001', platform: 'Fidelity',   expectedMonthlyFee: 445.00 },
   { name: 'Diana Whitmore',      clientId: 'CLI020', planNumber: 'QU-119234', platform: 'Quilter',    expectedMonthlyFee: 305.00 },
+  // Aviva clients
+  { name: 'Caroline Pemberton',  clientId: 'CLI021', planNumber: 'AV-112233', platform: 'Aviva',      expectedMonthlyFee: 385.00 },
+  { name: 'Oliver Stanhope',     clientId: 'CLI022', planNumber: 'AV-445566', platform: 'Aviva',      expectedMonthlyFee: 520.00 },
+  { name: 'Rachel Whitmore',     clientId: 'CLI023', planNumber: 'AV-778899', platform: 'Aviva',      expectedMonthlyFee: 240.00 },
+  // Hubwise clients
+  { name: 'Benjamin Ashford',    clientId: 'CLI024', planNumber: 'HW-334411', platform: 'Hubwise',    expectedMonthlyFee: 680.00 },
+  { name: 'Harriet Forsythe',    clientId: 'CLI025', planNumber: 'HW-556677', platform: 'Hubwise',    expectedMonthlyFee: 420.00 },
+  // Nucleus clients
+  { name: 'Frederick Langley',   clientId: 'CLI026', planNumber: 'NUC-22341', platform: 'Nucleus',    expectedMonthlyFee: 570.00 },
+  { name: 'Victoria Drummond',   clientId: 'CLI027', planNumber: 'NUC-88901', platform: 'Nucleus',    expectedMonthlyFee: 315.00 },
+  // Parmenion clients
+  { name: 'Sebastian Hartley',   clientId: 'CLI028', planNumber: 'PAR-44123', platform: 'Parmenion',  expectedMonthlyFee: 460.00 },
+  { name: 'Isabella Thornton',   clientId: 'CLI029', planNumber: 'PAR-66789', platform: 'Parmenion',  expectedMonthlyFee: 290.00 },
 ]
 
 function slugify(name: string): string {
@@ -60,46 +74,55 @@ function OnboardingInner() {
   const [dragOver, setDragOver] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  // Intelliflo OAuth state
-  const [intellifloConnected, setIntelliFioConnected] = useState(false)
-  const [intellifloLoading, setIntelliFioLoading] = useState(false)
-  const [intellifloError, setIntelliFioError] = useState('')
+  // OAuth state per CRM
+  const [oauthConnected, setOauthConnected] = useState<Record<string, boolean>>({})
+  const [oauthLoading, setOauthLoading] = useState<Record<string, boolean>>({})
+  const [oauthError, setOauthError] = useState<Record<string, string>>({})
 
-  // After OAuth callback, fetch clients automatically
-  const fetchIntelliFioClients = useCallback(async () => {
-    setIntelliFioLoading(true)
-    setIntelliFioError('')
+  const fetchOauthClients = useCallback(async (crmId: string) => {
+    setOauthLoading(prev => ({ ...prev, [crmId]: true }))
+    setOauthError(prev => ({ ...prev, [crmId]: '' }))
     try {
-      const res = await fetch('/api/intelliflo/clients')
+      const endpoint = crmId === 'intelliflo' ? '/api/intelliflo/clients'
+        : crmId === 'ajbell' ? '/api/ajbell/accounts'
+        : null
+      if (!endpoint) return
+
+      const res = await fetch(endpoint)
       if (res.status === 401) {
-        setIntelliFioError('Session expired — please reconnect')
-        setIntelliFioLoading(false)
+        setOauthError(prev => ({ ...prev, [crmId]: 'Session expired — please reconnect' }))
         return
       }
       if (!res.ok) throw new Error(await res.text())
       const data = await res.json() as { clients: ClientRecord[]; count: number }
       if (data.clients.length > 0) {
         setClients(data.clients)
-        setIntelliFioConnected(true)
+        setOauthConnected(prev => ({ ...prev, [crmId]: true }))
       } else {
-        setIntelliFioError('Connected but no clients found in your Intelliflo account')
+        setOauthError(prev => ({ ...prev, [crmId]: 'Connected but no clients found' }))
       }
     } catch (e) {
-      setIntelliFioError(`Failed to load clients: ${e}`)
+      setOauthError(prev => ({ ...prev, [crmId]: `Failed to load clients: ${e}` }))
     }
-    setIntelliFioLoading(false)
+    setOauthLoading(prev => ({ ...prev, [crmId]: false }))
   }, [])
 
   useEffect(() => {
-    if (searchParams.get('intelliflo') === 'connected') {
+    const connected = searchParams.get('intelliflo') === 'connected' ? 'intelliflo'
+      : searchParams.get('ajbell') === 'connected' ? 'ajbell'
+      : null
+    const error = searchParams.get('error')
+
+    if (connected) {
       setImportMethod('crm')
-      fetchIntelliFioClients()
+      fetchOauthClients(connected)
     }
-    if (searchParams.get('error')) {
+    if (error) {
       setImportMethod('crm')
-      setIntelliFioError(`Intelliflo error: ${searchParams.get('error')}`)
+      const crmId = error.startsWith('ajbell') ? 'ajbell' : 'intelliflo'
+      setOauthError(prev => ({ ...prev, [crmId]: `OAuth error: ${error}` }))
     }
-  }, [searchParams, fetchIntelliFioClients])
+  }, [searchParams, fetchOauthClients])
 
   // Transact API connection state
   const [showTransact, setShowTransact] = useState(false)
@@ -133,34 +156,31 @@ function OnboardingInner() {
     }).catch(() => {})
   }, [clients, firmName, emailAddress])
 
-  const handleFile = (file: File) => {
-    setImportError('')
-    const reader = new FileReader()
-    reader.onload = (ev) => {
-      try {
-        const data = new Uint8Array(ev.target!.result as ArrayBuffer)
-        const wb = XLSX.read(data, { type: 'array' })
-        const ws = wb.Sheets[wb.SheetNames[0]]
-        const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws)
-        const parsed: ClientRecord[] = rows.map(r => ({
-          name: String(r['Client Name'] ?? r['Name'] ?? r['name'] ?? ''),
-          clientId: String(r['Client ID'] ?? r['ClientID'] ?? ''),
-          planNumber: String(r['Plan Number'] ?? r['Plan No'] ?? r['planNumber'] ?? ''),
-          platform: String(r['Platform'] ?? r['platform'] ?? ''),
-          expectedMonthlyFee: Number(r['Expected Monthly Fee'] ?? r['Monthly Fee'] ?? r['expectedMonthlyFee'] ?? r['fee'] ?? 0),
-          ...(r['Last Review Date'] ?? r['lastReviewDate'] ? { lastReviewDate: String(r['Last Review Date'] ?? r['lastReviewDate']) } : {}),
-        })).filter(r => r.name)
+  const [fileLoading, setFileLoading] = useState(false)
 
-        if (parsed.length === 0) {
-          setImportError('No clients found — check your column headers match the template.')
-          return
-        }
-        setClients(parsed)
-      } catch {
-        setImportError('Could not read file. Download the template and try again.')
+  const handleFile = async (file: File) => {
+    setImportError('')
+    setFileLoading(true)
+    try {
+      const form = new FormData()
+      form.append('file', file)
+      const res = await fetch('/api/parse-clients', { method: 'POST', body: form })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Unknown error' }))
+        setImportError(err.error ?? 'Failed to parse file')
+        return
       }
+      const data = await res.json() as { clients: ClientRecord[]; count: number }
+      if (data.clients.length === 0) {
+        setImportError('No clients found in this file — try the template format or a different file.')
+        return
+      }
+      setClients(data.clients)
+    } catch {
+      setImportError('Could not read file. Try again or use the template.')
+    } finally {
+      setFileLoading(false)
     }
-    reader.readAsArrayBuffer(file)
   }
 
   const downloadTemplate = () => {
@@ -273,58 +293,70 @@ function OnboardingInner() {
                     {importMethod === 'crm' && (
                       <div className="border-t divide-y" style={{ borderColor: '#1C2330' }}>
                         {CRM_OPTIONS.map(crm => {
-                          const isIntelliFlo = crm.id === 'intelliflo'
-                          const isRealOAuth = isIntelliFlo && !!process.env.NEXT_PUBLIC_INTELLIFLO_ENABLED
+                          const isOAuth = crm.oauth && (
+                            crm.id === 'intelliflo' ? !!process.env.NEXT_PUBLIC_INTELLIFLO_ENABLED
+                            : crm.id === 'ajbell' ? !!process.env.NEXT_PUBLIC_AJBELL_ENABLED
+                            : false
+                          )
+                          const loading = oauthLoading[crm.id] || connectingCrm === crm.id
+                          const connected = oauthConnected[crm.id]
+                          const error = oauthError[crm.id]
 
                           return (
                             <div key={crm.id} className="border-b last:border-0" style={{ borderColor: '#1C2330' }}>
                               <button
                                 onClick={() => {
-                                  if (isIntelliFlo) {
-                                    // Real OAuth — redirect to auth endpoint
+                                  if (crm.id === 'intelliflo') {
                                     window.location.href = '/api/auth/intelliflo'
+                                    return
+                                  }
+                                  if (crm.id === 'ajbell') {
+                                    window.location.href = '/api/auth/ajbell'
                                     return
                                   }
                                   // Other CRMs — demo simulation
                                   setConnectingCrm(crm.id)
                                   setTimeout(() => { setConnectingCrm(null); setClients(DEMO_CLIENTS) }, 2200)
                                 }}
-                                disabled={!!connectingCrm || intellifloLoading}
+                                disabled={loading}
                                 className="w-full flex items-center gap-4 px-5 py-3.5 hover:bg-zinc-900/40 transition-colors disabled:opacity-60 text-left"
                               >
                                 <span className="text-lg w-7 text-center">{crm.logo}</span>
                                 <div className="flex-1">
                                   <div className="flex items-center gap-2">
                                     <p className="text-sm font-medium text-zinc-200">{crm.name}</p>
-                                    {isIntelliFlo && (
+                                    {isOAuth && (
                                       <span className="text-[9px] font-mono text-emerald-400 bg-emerald-950/40 border border-emerald-900/40 px-1.5 py-0.5 rounded-full">
                                         Real OAuth
                                       </span>
                                     )}
                                   </div>
-                                  <p className="text-xs text-zinc-600">{isIntelliFlo ? 'OpenID Connect — live client data' : crm.desc}</p>
+                                  <p className="text-xs text-zinc-600">
+                                    {crm.id === 'intelliflo' ? 'OpenID Connect — live client data'
+                                      : crm.id === 'ajbell' ? 'OAuth 2.0 — live account data'
+                                      : crm.desc}
+                                  </p>
                                 </div>
-                                {(connectingCrm === crm.id || (isIntelliFlo && intellifloLoading)) ? (
+                                {loading ? (
                                   <div className="flex items-center gap-2 text-xs text-indigo-400 font-mono">
                                     <span className="w-3 h-3 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
-                                    {isIntelliFlo ? 'Loading clients…' : 'Connecting…'}
+                                    {oauthLoading[crm.id] ? 'Loading clients…' : 'Connecting…'}
                                   </div>
-                                ) : intellifloConnected && isIntelliFlo ? (
+                                ) : connected ? (
                                   <span className="text-xs text-emerald-400 font-mono">✓ Connected</span>
                                 ) : (
                                   <span className="text-xs text-zinc-600 border rounded-lg px-3 py-1 hover:border-zinc-500 hover:text-zinc-400 transition-colors font-mono" style={{ borderColor: '#1C2330' }}>
-                                    {isIntelliFlo ? 'Authorise →' : 'Connect'}
+                                    {crm.oauth ? 'Authorise →' : 'Connect'}
                                   </span>
                                 )}
                               </button>
 
-                              {/* Intelliflo error / status */}
-                              {isIntelliFlo && intellifloError && (
-                                <div className="px-5 pb-3 text-xs text-red-400 font-mono">{intellifloError}</div>
+                              {error && (
+                                <div className="px-5 pb-3 text-xs text-red-400 font-mono">{error}</div>
                               )}
-                              {isIntelliFlo && intellifloConnected && clients.length > 0 && (
+                              {connected && clients.length > 0 && (
                                 <div className="px-5 pb-3 text-xs text-emerald-500 font-mono">
-                                  {clients.length} clients imported from Intelliflo
+                                  {clients.length} clients imported from {crm.name}
                                 </div>
                               )}
                             </div>
@@ -354,11 +386,20 @@ function OnboardingInner() {
                           onDragOver={e => { e.preventDefault(); setDragOver(true) }}
                           onDragLeave={() => setDragOver(false)}
                           onDrop={e => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files[0]; if (f) handleFile(f) }}
-                          onClick={() => fileRef.current?.click()}
-                          className="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all"
-                          style={{ borderColor: dragOver ? '#6366f1' : '#1C2330', background: dragOver ? 'rgba(99,102,241,0.05)' : '#0D1117' }}>
-                          <p className="text-sm text-zinc-500">Drop file here or click to browse</p>
-                          <p className="text-xs text-zinc-700 mt-1 font-mono">.xlsx · .xls · .csv</p>
+                          onClick={() => !fileLoading && fileRef.current?.click()}
+                          className="border-2 border-dashed rounded-xl p-8 text-center transition-all"
+                          style={{ borderColor: fileLoading ? '#6366f1' : dragOver ? '#6366f1' : '#1C2330', background: dragOver ? 'rgba(99,102,241,0.05)' : '#0D1117', cursor: fileLoading ? 'wait' : 'pointer' }}>
+                          {fileLoading ? (
+                            <div className="flex flex-col items-center gap-2">
+                              <span className="w-5 h-5 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+                              <p className="text-sm text-indigo-400 font-mono">Analysing file with AI…</p>
+                            </div>
+                          ) : (
+                            <>
+                              <p className="text-sm text-zinc-500">Drop file here or click to browse</p>
+                              <p className="text-xs text-zinc-700 mt-1 font-mono">.xlsx · .xls · .csv — any format</p>
+                            </>
+                          )}
                           <input ref={fileRef} type="file" className="hidden" accept=".xlsx,.xls,.csv" onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = '' }} />
                         </div>
                         {importError && <p className="text-xs text-red-400 font-mono">{importError}</p>}
