@@ -18,7 +18,7 @@ The firm then has to:
 4. Find discrepancies and chase the platform
 5. Post confirmed income to their ledger
 
-**IFA Dataflow** charges £300/month for a 24-hour manual turnaround with no anomaly detection. We do it in 40 seconds, with AI anomaly explanations, for the same price.
+**IFA Dataflow** charges £300/month for a 24-hour manual turnaround with no anomaly detection. We do it in 40 seconds, with AI anomaly explanations.
 
 ---
 
@@ -29,20 +29,50 @@ Adviser → forwards statement to smithwealth@readmedb.com
               ↓
 Resend receives email → fires webhook → POST /api/email
               ↓
-Attachment fetched → convert (xlsx/csv/pdf) → classify platform
+Attachment fetched (with retry) → convert (xlsx/csv/pdf) → classify platform
               ↓
 AI parser extracts rows: client name, plan number, fee type, amount, date
               ↓
 Validator scores each row confidence (0–1), flags < 80%
               ↓
-Fuzzy matcher reconciles against firm's client list
+Fuzzy matcher reconciles against firm's client list from ReadmeDB
+              ↓
+Charging-without-service flag: clients charged with no review for 12+ months
               ↓
 AI generates plain-English anomaly explanation
               ↓
-Report saved to ReadmeDB (persistent markdown)
+Report saved to ReadmeDB (persistent markdown per firm)
               ↓
-Resend sends HTML reply with summary + attached .md report
+Resend sends HTML reply + .md report attached
 ```
+
+---
+
+## Pages
+
+| Route | Description |
+|---|---|
+| `/` | Landing page with product overview |
+| `/onboarding` | 3-step setup: firm name → import clients → get email address |
+| `/dashboard` | Reconciliation results, history, CWS flags, Transact live badge |
+| `/chat` | AI chat agent — full history-aware, upload statements, ReadmeDB tools |
+| `/admin` | Email inbox — live processing timeline, step-by-step detail |
+| `/results` | Per-row reconciliation table with confidence scores and filters |
+
+---
+
+## API Routes
+
+| Route | Method | Description |
+|---|---|---|
+| `/api/email` | POST | Resend inbound webhook — full reconciliation pipeline |
+| `/api/agent-chat` | POST | SSE streaming chat agent with tools |
+| `/api/chat` | POST | File upload parse pipeline (SSE) |
+| `/api/reconcile` | POST | Manual reconcile endpoint |
+| `/api/seed-firm` | POST | Write/update firm + clients in ReadmeDB |
+| `/api/firm-history` | GET | Fetch firm's ReadmeDB markdown file |
+| `/api/admin/emails` | GET | Fetch `_email-log.json` from ReadmeDB |
+| `/api/transact-pull` | POST | Mock Transact live API pull |
 
 ---
 
@@ -51,42 +81,43 @@ Resend sends HTML reply with summary + attached .md report
 ```
 App/
 ├── app/
-│   ├── page.tsx                  # Root — redirects to /onboarding or /dashboard
-│   ├── onboarding/page.tsx       # 3-step firm setup (name → clients → email address)
-│   ├── dashboard/page.tsx        # Main dashboard — reconciliation results + history
-│   ├── chat/page.tsx             # AI chat interface — upload statements, ask questions
-│   ├── admin/page.tsx            # Email inbox admin — live processing timeline
-│   ├── results/page.tsx          # Detailed reconciliation results view
+│   ├── page.tsx                  # Landing page (YC-style, white)
+│   ├── onboarding/page.tsx       # 3-step firm setup — seeds ReadmeDB on client load
+│   ├── dashboard/page.tsx        # Main dashboard — real data from ReadmeDB history
+│   ├── chat/page.tsx             # AI chat — Markdown render, email history context
+│   ├── admin/page.tsx            # Email inbox admin — live polling, step timeline
+│   ├── results/page.tsx          # Per-row results table with confidence filters
 │   └── api/
-│       ├── email/route.ts        # Resend inbound webhook handler (main pipeline)
-│       ├── agent-chat/route.ts   # Chat agent with ReadmeDB tools (SSE streaming)
-│       ├── reconcile/route.ts    # Manual reconcile endpoint (used by chat/upload)
-│       ├── parse-statement/      # Statement parsing endpoint
-│       ├── firm-history/         # Fetch firm's ReadmeDB markdown file
-│       ├── seed-firm/            # Write/update firm + clients in ReadmeDB
-│       └── admin/emails/         # Fetch email processing log from ReadmeDB
+│       ├── email/route.ts        # Resend webhook (main pipeline)
+│       ├── agent-chat/route.ts   # Chat agent — SSE, ReadmeDB + email log tools
+│       ├── chat/route.ts         # File parse pipeline — SSE
+│       ├── reconcile/route.ts    # Manual reconcile
+│       ├── seed-firm/route.ts    # Upsert firm clients in ReadmeDB
+│       ├── firm-history/         # Fetch firm ReadmeDB file
+│       ├── transact-pull/        # Mock Transact API
+│       └── admin/emails/         # Email log reader
 │
 ├── agents/
-│   ├── classifier.ts             # Identifies platform + column mapping from sheet headers
-│   ├── parser.ts                 # Extracts structured rows using AI (generateObject)
-│   ├── validator.ts              # Scores each parsed row 0–1 confidence
-│   └── orchestrator.ts           # End-to-end pipeline coordinator
+│   ├── classifier.ts             # Platform + column mapping (generateObject)
+│   ├── parser.ts                 # Row extraction (generateObject)
+│   └── validator.ts              # Confidence scoring (generateObject)
 │
 ├── lib/
 │   ├── schema.ts                 # Zod schemas: ParsedRow, ValidatedRow
-│   ├── reconcile.ts              # Fuzzy matching engine + toMarkdownReport()
+│   ├── reconcile.ts              # Fuzzy matching + CWS flag + markdown report
 │   ├── converters.ts             # xlsx/csv/pdf → { sheets: Record<string, string> }
-│   ├── readmedb.ts               # ReadmeDB CRUD (rdbRead/Write/Append/Delete/List)
-│   └── model.ts                  # AI model factory (OpenAI / Anthropic from env)
+│   ├── readmedb.ts               # ReadmeDB CRUD (read/write/append/delete/list)
+│   ├── ratelimit.ts              # In-process sliding-window rate limiter
+│   └── model.ts                  # AI model factory (OpenAI / Anthropic)
 │
 ├── scripts/
-│   ├── generate-hartley-data.mjs # Generates demo client list + statement for testing
-│   └── generate-demo-data.mjs    # Generates larger multi-platform demo data
+│   └── generate-demo-realistic.mjs  # Generates Meridian Wealth demo files (42 clients)
 │
-└── public/
-    ├── hartley-partners-clients.xlsx   # Demo client list (10 clients, Quilter)
-    ├── quilter-hartley-oct-2024.xlsx   # Demo statement with intentional anomalies
-    └── demo-statement.xlsx             # Larger 120-row multi-platform statement
+└── public/demo/
+    ├── meridian-wealth-clients.xlsx      # 42 clients, 3 platforms, lastReviewDate set
+    ├── quilter-meridian-oct-2024.xlsx    # 21 rows — anomalies baked in
+    ├── transact-meridian-oct-2024.xlsx   # 13 rows — missing client, wrong amount
+    └── fidelity-meridian-oct-2024.xlsx   # 8 rows — wrong plan number
 ```
 
 ---
@@ -94,158 +125,86 @@ App/
 ## Key Components
 
 ### Classifier (`agents/classifier.ts`)
-Uses `generateObject` to identify the platform and map column names from raw sheet headers. Handles Quilter's two-tab pension/non-pension split, Transact's 200+ transaction codes, Fidelity PDFs, and AJ Bell CSVs with no pre-built templates.
-
-**Output:**
-```ts
-{
-  platform: 'Quilter',
-  quirks: ['two-tab-split'],
-  columnMap: {
-    clientName: 'Client Name',
-    planNumber: 'Plan Number',
-    feeType: 'Fee Type',
-    grossAmount: 'Gross Amount',
-    paymentDate: 'Payment Date'
-  }
-}
-```
+Uses `generateObject` to identify platform and map column names cold. Handles Quilter's two-tab pension/non-pension split, Transact's 200+ transaction codes, Fidelity's `Investor Name` / `Net Amount` columns, AJ Bell CSVs.
 
 ### Parser (`agents/parser.ts`)
-Uses `generateObject` with the classifier's column map to extract structured rows from raw sheet text. Handles merged cells, multi-row headers, and platform-specific quirks.
+Extracts structured rows using the classifier's column map. Handles `Net Amount` → `grossAmount`, `Policy Number` → `planNumber`, `Transaction Date` → `paymentDate`, missing fields defaulted rather than dropped.
 
 ### Validator (`agents/validator.ts`)
-Scores each parsed row 0.0–1.0 based on field completeness, amount plausibility, date validity, and name realism. Flags rows below 80% for human review.
+Scores each parsed row 0.0–1.0. Flags below 80% for human review. Never silently accepts low-confidence rows.
 
 ### Reconcile Engine (`lib/reconcile.ts`)
-Pure TypeScript fuzzy matcher. No AI — deterministic and fast.
+Pure TypeScript fuzzy matcher — no AI, deterministic and fast.
 
-**Matching tiers:**
 | Tier | Threshold | Action |
 |---|---|---|
-| ✅ Auto | score ≥ 0.95 | Done, no review needed |
-| 🟡 Suggested | 0.70–0.95 | One-click confirm |
-| 🔴 Unmatched | < 0.70 | Human review required |
+| ✅ Auto | score ≥ 0.85 | Done |
+| 🟡 Suggested | 0.60–0.85 | Review |
+| 🔴 Unmatched | < 0.60 | Human required |
 
-**Scoring formula:**
-- Plan number exact match → 1.0
-- Plan number partial/suffix match → 0.7–0.85
-- Combined with name token overlap score
-- Weighted: plan 60%, name 40%
+Scoring: plan number 70% weight, client name token overlap 30%.
 
-### ReadmeDB (`lib/readmedb.ts`)
-Persistent markdown file store. One `.md` file per firm, stored at `https://app.readmedb.com`. Used for:
-- Firm client list (embedded as `json clients` code block)
-- Reconciliation history (appended per run)
-- Email processing log (`_email-log.json`)
-
-**API:**
-```ts
-rdbRead(filename)           // GET file contents
-rdbWrite(filename, content) // PUT/create file
-rdbAppend(filename, text)   // Append to existing file
-rdbDelete(filename)         // DELETE file
-rdbList()                   // List all files
-appendReconciliationToFirm(firmName, entry)  // Append formatted recon report
-```
+**Charging-without-service flag:** Any client with collected fees but no `lastReviewDate` within 12 months is flagged. The £426m SJP compliance problem, caught automatically.
 
 ### Email Pipeline (`app/api/email/route.ts`)
-Handles Resend `email.received` webhook events.
+Full Resend `email.received` webhook handler:
+1. Verify svix signature
+2. Find all spreadsheet attachments
+3. Fetch each via `resend.emails.receiving.attachments.get()` — up to 5 retries with exponential backoff (Resend indexes asynchronously)
+4. Firm lookup from ReadmeDB by slug — replies with onboarding instructions if unknown
+5. Classify → parse → validate → reconcile each attachment
+6. Compute `totalExpected` from all clients on the processed platforms (not just matched rows)
+7. Flag charging-without-service
+8. AI anomaly explanation
+9. Save markdown report to ReadmeDB, log to `_email-log.json`
+10. Send HTML reply + `.md` attachment via Resend
 
-**Flow:**
-1. Verify webhook signature (svix)
-2. Extract attachment metadata from event payload
-3. Fetch attachment via `resend.emails.receiving.attachments.get()` (with retry — Resend indexes asynchronously)
-4. Download attachment via pre-signed `download_url`
-5. Run classify → parse → validate → reconcile pipeline
-6. Generate AI anomaly explanation
-7. Save report to ReadmeDB
-8. Send HTML reply via Resend with `.md` attachment
-9. Log all steps to `_email-log.json` in ReadmeDB
+Rate limited: 10 emails per hour per sender.
 
 ### Chat Agent (`app/api/agent-chat/route.ts`)
-SSE-streaming agent with tools:
-- `parse_statement` — parse uploaded file
-- `run_reconciliation` — reconcile parsed rows against client list
-- `explain_anomaly` — AI explanation of a flagged row
-- `list_readmedb_files` — list all firm files
-- `read_readmedb_file` — read a specific file
-- `write_readmedb_file` — write/update a file
-- `delete_readmedb_file` — delete a file
-- `save_to_readmedb` — append reconciliation to firm history
+SSE-streaming agent. Pre-loads firm history and last 20 email runs into system prompt on every request — so it answers "what happened last month?" without a tool call.
 
-### Admin Page (`app/admin/page.tsx`)
-Real-time email inbox view. Polls `/api/admin/emails` every 10s. Shows:
-- All inbound emails with status badges
-- Step-by-step processing timeline per email
-- £ summary cards (expected / received / gap)
-- Match tier breakdown
-- AI anomaly analysis
-- Full error detail on failures
+**Tools:**
+- `get_email_log` — full structured log with per-step details
+- `get_firm_history` — full ReadmeDB markdown file
+- `reconcile_statement` — reconcile session rows against client list
+- `get_client_list` — list clients with fees and platforms
+- `get_parsed_rows` — rows from current upload session
+- `explain_anomaly` — AI explanation of any anomaly
+- `list_readmedb_files` / `read_readmedb_file` / `write_readmedb_file` / `delete_readmedb_file`
+- `save_to_readmedb` — append notes to firm history
+
+Rate limited: 20 requests per minute per IP.
+
+### ReadmeDB (`lib/readmedb.ts`)
+One `.md` file per firm. Stores client list as a `json clients` code block + appended reconciliation reports. Also stores `_email-log.json` as a shared log.
+
+### Onboarding (`app/onboarding/page.tsx`)
+Seeds ReadmeDB the moment clients are loaded (not on "finish") — so the email address is live immediately and emails sent before completing step 3 still work.
 
 ---
 
-## Data Flow Diagram
+## Data Flow
 
 ```
 ┌─────────────────────────────────────────────────────┐
 │                    INBOUND EMAIL                     │
-│  adviser@firm.com → hartley-partners@readmedb.com   │
+│  adviser@firm.com → smithwealth@readmedb.com        │
 └─────────────────────┬───────────────────────────────┘
                       │ Resend webhook
                       ▼
-┌─────────────────────────────────────────────────────┐
-│               POST /api/email                        │
-│  1. Verify signature (svix)                          │
-│  2. Fetch attachment (retry up to 5x)                │
-│  3. Firm lookup from ReadmeDB by slug                │
-└──────┬──────────────────────────┬───────────────────┘
-       │                          │
-       ▼                          ▼
-┌─────────────┐          ┌────────────────┐
-│  Converter  │          │    ReadmeDB    │
-│ xlsx→sheets │          │  firm clients  │
-└──────┬──────┘          └───────┬────────┘
-       │                         │
-       ▼                         │
-┌─────────────┐                  │
-│ Classifier  │ (GPT-4.1)        │
-│  platform   │                  │
-│  column map │                  │
-└──────┬──────┘                  │
-       ▼                         │
-┌─────────────┐                  │
-│   Parser    │ (GPT-4.1)        │
-│  rows[]     │                  │
-└──────┬──────┘                  │
-       ▼                         │
-┌─────────────┐                  │
-│  Validator  │ (GPT-4.1)        │
-│  scored     │                  │
-└──────┬──────┘                  │
-       │                         │
-       └────────────┬────────────┘
-                    ▼
-          ┌──────────────────┐
-          │  Reconcile Engine │ (pure TS, no AI)
-          │  fuzzy matching   │
-          │  auto/suggested/  │
-          │  unmatched tiers  │
-          └────────┬─────────┘
-                   ▼
-          ┌──────────────────┐
-          │   AI Anomaly     │ (GPT-4.1)
-          │   Explanation    │
-          └────────┬─────────┘
-                   │
-          ┌────────┴────────────────────┐
-          │                             │
-          ▼                             ▼
-  ┌──────────────┐              ┌──────────────┐
-  │   ReadmeDB   │              │    Resend    │
-  │  firm.md     │              │  HTML reply  │
-  │  _email-log  │              │  + .md report│
-  └──────────────┘              └──────────────┘
+              POST /api/email
+              ├── Verify signature
+              ├── Firm lookup (ReadmeDB)
+              ├── For each attachment:
+              │   ├── Download (retry ×5)
+              │   ├── Convert → classify → parse → validate
+              │   └── Collect rows
+              ├── Reconcile (all rows × all clients)
+              ├── Flag CWS clients
+              ├── AI anomaly explanation
+              ├── Save to ReadmeDB
+              └── Send HTML reply + .md report
 ```
 
 ---
@@ -254,31 +213,29 @@ Real-time email inbox view. Polls `/api/admin/emails` every 10s. Shows:
 
 | Layer | Technology |
 |---|---|
-| Framework | Next.js 16 (App Router) |
-| AI | OpenAI GPT-4.1 via Vercel AI SDK v6 |
-| Email inbound | Resend (`email.received` webhook) |
+| Framework | Next.js (App Router) |
+| AI | OpenAI GPT-4.1 via Vercel AI SDK |
+| Email inbound | Resend `email.received` webhook |
 | Email outbound | Resend SDK |
 | Persistent storage | ReadmeDB (markdown file store) |
 | File parsing | `xlsx` (Excel/CSV), `pdf-parse` (PDF) |
 | Schema validation | Zod |
-| Styling | Tailwind CSS v4 |
-| Testing | Vitest |
-| Language | TypeScript 5 |
+| Styling | Tailwind CSS |
+| Markdown rendering | `react-markdown` + `remark-gfm` |
+| Rate limiting | In-process sliding-window (no Redis needed) |
+| Language | TypeScript |
 
 ---
 
 ## Environment Variables
 
 ```env
-# AI
-AI_PROVIDER=openai              # openai | anthropic
+AI_PROVIDER=openai
 AI_MODEL=gpt-4.1
 OPENAI_API_KEY=sk-...
 
-# Storage
 READMEDB_API_KEY=rdb_...
 
-# Email
 RESEND_API_KEY=re_...
 RESEND_WEBHOOK_SECRET=whsec_...
 INBOUND_DOMAIN=readmedb.com
@@ -293,80 +250,62 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:3000` → completes onboarding → go to `/dashboard`.
+Open `http://localhost:3000` → onboarding → dashboard.
 
 ### Testing email end-to-end (local)
 
-1. Start ngrok: `npx ngrok http 3000`
-2. Set Resend webhook URL to `https://xxxx.ngrok.io/api/email`, event: `email.received`
-3. Complete onboarding at `localhost:3000` (creates firm in ReadmeDB)
-4. Click **"↑ Sync clients to ReadmeDB"** on dashboard to confirm sync
-5. Email `yourfirm@readmedb.com` with an XLS/CSV attached
-6. Watch `/admin` for live processing steps
+1. `npx ngrok http 3000`
+2. Set Resend webhook to `https://xxxx.ngrok.io/api/email`, event: `email.received`
+3. Complete onboarding — firm is seeded to ReadmeDB on client import
+4. Email `yourfirm@readmedb.com` with a demo file attached
+5. Watch `/admin` for live processing
 
-### Demo data
+### Demo data (Meridian Wealth — 42 clients)
 
 ```bash
-node scripts/generate-hartley-data.mjs
+node scripts/generate-demo-realistic.mjs
 ```
 
-Generates:
-- `public/hartley-partners-clients.xlsx` — 10 Quilter clients
-- `public/quilter-hartley-oct-2024.xlsx` — statement with intentional anomalies:
-  - 6 auto-matched rows
-  - 1 fuzzy match (name abbreviated, plan off by 1 digit)
-  - 1 unmatched (unknown client)
-  - 2 missing clients (zero income month)
-  - 1 short payment (£290 vs £340 expected)
+Generates `public/demo/`:
+- `meridian-wealth-clients.xlsx` — 42 clients across Quilter, Transact, Fidelity with `Last Review Date`
+- `quilter-meridian-oct-2024.xlsx` — 21 rows, 1 fuzzy match, 1 unmatched, 1 wrong amount
+- `transact-meridian-oct-2024.xlsx` — 13 rows, 1 missing client (Oliver Stratford), 1 wrong amount
+- `fidelity-meridian-oct-2024.xlsx` — 8 rows, 1 wrong plan number
 
----
-
-## Pages
-
-| Route | Description |
-|---|---|
-| `/` | Redirects based on localStorage |
-| `/onboarding` | 3-step setup: firm name → import clients → get email address |
-| `/dashboard` | Reconciliation results, firm history, email address, sync button |
-| `/chat` | AI chat agent — upload statements, query history, ReadmeDB tools |
-| `/admin` | Email inbox — live processing timeline, error detail, match stats |
-| `/results` | Detailed per-row reconciliation view |
-
----
-
-## API Routes
-
-| Route | Method | Description |
-|---|---|---|
-| `/api/email` | POST | Resend inbound webhook — full reconciliation pipeline |
-| `/api/agent-chat` | POST | SSE streaming chat agent |
-| `/api/reconcile` | POST | Manual reconcile (used by chat UI) |
-| `/api/parse-statement` | POST | Parse a statement file |
-| `/api/firm-history` | GET | Fetch firm's ReadmeDB history file |
-| `/api/seed-firm` | POST | Write/update firm + clients in ReadmeDB |
-| `/api/admin/emails` | GET | Fetch `_email-log.json` from ReadmeDB |
+**Intentional anomalies for demo:**
+- Derek Fotheringay — unknown client, unmatched
+- H Dunmore → Harriet Dunmore — fuzzy/suggested match
+- George Thornbury — paid £490, expected £550
+- Oliver Stratford — no payment received (missing)
+- Natasha Hollingsworth — paid £390, expected £465
+- Yvonne Stafford — wrong plan number (FI-330509 vs FI-330508)
+- 4 CWS flags: Patricia Sinclair, Victoria Pemberton, Ian Crompton, Vivienne Caldwell
 
 ---
 
 ## Features Implemented
 
-- [x] **Feature 1** — Upload any provider statement (XLS, XLSX, CSV, PDF). AI reads cold — no templates.
-- [x] **Feature 2** — Income reconciliation + report. Fuzzy matching, 3-tier system, AI anomaly explanation.
-- [x] **Feature 3** — Email in, report out. Forward a statement, get a reply in <60s.
-- [x] **Feature 4** — Onboarding. CRM simulation + Excel import. Under 5 minutes.
-- [ ] **Feature 5** — Transact live API connection (planned).
+- [x] **Feature 1** — Upload any statement (XLS, XLSX, CSV, PDF). AI reads cold.
+- [x] **Feature 2** — Reconciliation engine. 3-tier fuzzy matching, gap calc, AI anomaly explanation, CWS flag.
+- [x] **Feature 3** — Email in, report out. Multi-attachment batch, HTML reply + .md attachment.
+- [x] **Feature 4** — Onboarding. CRM simulation, Excel import, instant ReadmeDB seed.
+- [x] **Feature 5** — Transact live API mock. Live badge, pull button, simulated income data.
+- [x] **Admin page** — Email processing timeline, step-by-step detail, live polling.
+- [x] **Chat agent** — History-aware, email log access, ReadmeDB tools, Markdown rendering.
+- [x] **Rate limiting** — Chat (20/min), parse (10/min), email (10/hr per sender).
+- [x] **Landing page** — YC-style, white, minimal.
 
 ---
 
 ## Platform Support
 
-| Platform | Format | Status |
+| Platform | Format | Notes |
 |---|---|---|
-| Quilter | XLS (2-tab pension split) | ✅ Tested |
-| Transact | CSV / JSON | ✅ Parser ready |
-| Fidelity | PDF | ✅ Parser ready |
-| AJ Bell | CSV | ✅ Parser ready |
-| Aegon | XML (Criterion) | 🔲 Planned |
+| Quilter | XLS (2-tab pension split) | Tested |
+| Transact | CSV + REST API | Tested + live mock |
+| Fidelity | PDF / XLS | `Net Amount`, `Investor Name` mapped |
+| AJ Bell | CSV | Parser ready |
+| Aegon | XML | Planned |
 
 ---
 
