@@ -3,7 +3,34 @@
 > **AI-powered income reconciliation for UK IFA firms.**
 > Forward a platform statement to one email address. Get a full reconciliation report back in under 60 seconds.
 
-Built at HackLondon 2026.
+<p>
+  <img alt="Next.js" src="https://img.shields.io/badge/Next.js-16-black?logo=next.js" />
+  <img alt="React" src="https://img.shields.io/badge/React-19-149eca?logo=react" />
+  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5-3178c6?logo=typescript&logoColor=white" />
+  <img alt="Tailwind CSS" src="https://img.shields.io/badge/Tailwind_CSS-4-38bdf8?logo=tailwindcss&logoColor=white" />
+  <img alt="Vercel AI SDK" src="https://img.shields.io/badge/Vercel_AI_SDK-6-black?logo=vercel" />
+  <img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-green" />
+</p>
+
+Recon AI reads any platform statement (XLS, XLSX, CSV, PDF) cold, matches every line
+to the right client, flags anomalies and compliance risks, and emails back a full
+report — no templates, no manual re-keying. Built at HackLondon 2026.
+
+## Contents
+
+- [The Problem](#the-problem)
+- [How It Works](#how-it-works)
+- [Quick Start](#quick-start)
+- [Environment Variables](#environment-variables)
+- [Demo Data](#demo-data-meridian-wealth--42-clients)
+- [Testing](#testing)
+- [Pages](#pages)
+- [API Routes](#api-routes)
+- [Architecture](#architecture)
+- [Key Components](#key-components)
+- [Tech Stack](#tech-stack)
+- [Platform Support](#platform-support)
+- [License](#license)
 
 ---
 
@@ -45,6 +72,108 @@ Report saved to ReadmeDB (persistent markdown per firm)
               ↓
 Resend sends HTML reply + .md report attached
 ```
+
+---
+
+## Quick Start
+
+**Prerequisites:** Node.js 20+ and npm.
+
+```bash
+# 1. Install dependencies
+npm install
+
+# 2. Configure environment
+cp .env.local.example .env.local   # then fill in your keys
+
+# 3. Run the dev server
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) → onboarding → dashboard.
+
+At minimum you need an AI provider key (`OPENAI_API_KEY` or `ANTHROPIC_API_KEY`)
+and a `READMEDB_API_KEY`. The Resend, Transact, AJ Bell, and Intelliflo variables
+are only required for the email pipeline and the corresponding integrations.
+
+---
+
+## Environment Variables
+
+Copy `.env.local.example` to `.env.local` and fill in the values. `.env.local` is
+gitignored — never commit real keys.
+
+| Variable | Required | Description |
+|---|---|---|
+| `AI_PROVIDER` | ✅ | `openai` (default) or `anthropic` |
+| `AI_MODEL` | ✅ | Model id, e.g. `gpt-4o` or `claude-3-5-sonnet-20241022` |
+| `OPENAI_API_KEY` | ✅¹ | OpenAI key (when `AI_PROVIDER=openai`) |
+| `ANTHROPIC_API_KEY` | ✅¹ | Anthropic key (when `AI_PROVIDER=anthropic`) |
+| `READMEDB_API_KEY` | ✅ | ReadmeDB key — persistent per-firm markdown store |
+| `RESEND_API_KEY` | ⚪ | Resend key for inbound/outbound email |
+| `RESEND_WEBHOOK_SECRET` | ⚪ | Svix signing secret for the inbound webhook |
+| `INBOUND_DOMAIN` | ⚪ | Domain statement emails are sent to (default `readmedb.com`) |
+| `TRANSACT_API_BASE` | ⚪ | Override the Transact API base URL |
+| `AJBELL_PARTNER_TOKEN` | ⚪ | AJ Bell partner token |
+| `NEXT_PUBLIC_AJBELL_ENABLED` | ⚪ | Show AJ Bell in onboarding when set |
+| `INTELLIFLO_CLIENT_ID` | ⚪ | Intelliflo OAuth client id |
+| `INTELLIFLO_CLIENT_SECRET` | ⚪ | Intelliflo OAuth client secret |
+| `INTELLIFLO_API_KEY` | ⚪ | Intelliflo API key |
+| `INTELLIFLO_API_BASE` | ⚪ | Override the Intelliflo API base URL |
+| `NEXT_PUBLIC_INTELLIFLO_ENABLED` | ⚪ | Show Intelliflo in onboarding when set |
+
+¹ Provide the key matching your selected `AI_PROVIDER`.
+
+---
+
+## Demo Data (Meridian Wealth — 42 clients)
+
+Realistic sample files are checked in under `public/demo/`. To regenerate them:
+
+```bash
+node scripts/generate-demo-realistic.mjs
+```
+
+Generates:
+- `meridian-wealth-clients.xlsx` — 42 clients across Quilter, Transact, Fidelity with `Last Review Date`
+- `quilter-meridian-oct-2024.xlsx` — 21 rows, 1 fuzzy match, 1 unmatched, 1 wrong amount
+- `transact-meridian-oct-2024.xlsx` — 13 rows, 1 missing client (Oliver Stratford), 1 wrong amount
+- `fidelity-meridian-oct-2024.xlsx` — 8 rows, 1 wrong plan number
+
+**Intentional anomalies for demo:**
+- Derek Fotheringay — unknown client, unmatched
+- H Dunmore → Harriet Dunmore — fuzzy/suggested match
+- George Thornbury — paid £490, expected £550
+- Oliver Stratford — no payment received (missing)
+- Natasha Hollingsworth — paid £390, expected £465
+- Yvonne Stafford — wrong plan number (FI-330509 vs FI-330508)
+- 4 CWS flags: Patricia Sinclair, Victoria Pemberton, Ian Crompton, Vivienne Caldwell
+
+---
+
+## Testing
+
+Unit tests cover the classifier, parser, validator, orchestrator, converters, model
+factory, and schemas.
+
+```bash
+npm test          # run once
+npm run test:watch # watch mode
+```
+
+Lint the project with:
+
+```bash
+npm run lint
+```
+
+### Testing the email pipeline end-to-end (local)
+
+1. `npx ngrok http 3000`
+2. Set the Resend webhook to `https://xxxx.ngrok.io/api/email`, event: `email.received`
+3. Complete onboarding — the firm is seeded to ReadmeDB on client import
+4. Email `yourfirm@readmedb.com` with a demo file attached
+5. Watch `/admin` for live processing
 
 ---
 
@@ -214,7 +343,7 @@ Seeds ReadmeDB the moment clients are loaded (not on "finish") — so the email 
 | Layer | Technology |
 |---|---|
 | Framework | Next.js (App Router) |
-| AI | OpenAI GPT-4.1 via Vercel AI SDK |
+| AI | OpenAI or Anthropic via Vercel AI SDK |
 | Email inbound | Resend `email.received` webhook |
 | Email outbound | Resend SDK |
 | Persistent storage | ReadmeDB (markdown file store) |
@@ -224,62 +353,6 @@ Seeds ReadmeDB the moment clients are loaded (not on "finish") — so the email 
 | Markdown rendering | `react-markdown` + `remark-gfm` |
 | Rate limiting | In-process sliding-window (no Redis needed) |
 | Language | TypeScript |
-
----
-
-## Environment Variables
-
-```env
-AI_PROVIDER=openai
-AI_MODEL=gpt-4.1
-OPENAI_API_KEY=sk-...
-
-READMEDB_API_KEY=rdb_...
-
-RESEND_API_KEY=re_...
-RESEND_WEBHOOK_SECRET=whsec_...
-INBOUND_DOMAIN=readmedb.com
-```
-
----
-
-## Getting Started
-
-```bash
-npm install
-npm run dev
-```
-
-Open `http://localhost:3000` → onboarding → dashboard.
-
-### Testing email end-to-end (local)
-
-1. `npx ngrok http 3000`
-2. Set Resend webhook to `https://xxxx.ngrok.io/api/email`, event: `email.received`
-3. Complete onboarding — firm is seeded to ReadmeDB on client import
-4. Email `yourfirm@readmedb.com` with a demo file attached
-5. Watch `/admin` for live processing
-
-### Demo data (Meridian Wealth — 42 clients)
-
-```bash
-node scripts/generate-demo-realistic.mjs
-```
-
-Generates `public/demo/`:
-- `meridian-wealth-clients.xlsx` — 42 clients across Quilter, Transact, Fidelity with `Last Review Date`
-- `quilter-meridian-oct-2024.xlsx` — 21 rows, 1 fuzzy match, 1 unmatched, 1 wrong amount
-- `transact-meridian-oct-2024.xlsx` — 13 rows, 1 missing client (Oliver Stratford), 1 wrong amount
-- `fidelity-meridian-oct-2024.xlsx` — 8 rows, 1 wrong plan number
-
-**Intentional anomalies for demo:**
-- Derek Fotheringay — unknown client, unmatched
-- H Dunmore → Harriet Dunmore — fuzzy/suggested match
-- George Thornbury — paid £490, expected £550
-- Oliver Stratford — no payment received (missing)
-- Natasha Hollingsworth — paid £390, expected £465
-- Yvonne Stafford — wrong plan number (FI-330509 vs FI-330508)
-- 4 CWS flags: Patricia Sinclair, Victoria Pemberton, Ian Crompton, Vivienne Caldwell
 
 ---
 
@@ -306,6 +379,12 @@ Generates `public/demo/`:
 | Fidelity | PDF / XLS | `Net Amount`, `Investor Name` mapped |
 | AJ Bell | CSV | Parser ready |
 | Aegon | XML | Planned |
+
+---
+
+## License
+
+Released under the [MIT License](LICENSE).
 
 ---
 
