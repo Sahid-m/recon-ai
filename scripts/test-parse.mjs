@@ -1,4 +1,5 @@
-const KEY = 'REDACTED_READMEDB_API_KEY'
+const KEY = process.env.READMEDB_API_KEY
+if (!KEY) throw new Error('READMEDB_API_KEY environment variable is required')
 const res = await fetch('https://app.readmedb.com/api/v1/files/hartley-partners.md', {
   headers: { Authorization: `Bearer ${KEY}` }
 })
