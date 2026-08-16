@@ -1,4 +1,5 @@
-const KEY = 'rdb_1fed410b4eeb0f966d0a0b11aa91b272'
+const KEY = process.env.READMEDB_API_KEY
+if (!KEY) throw new Error('READMEDB_API_KEY environment variable is required')
 const BASE = 'https://app.readmedb.com/api/v1'
 
 const res = await fetch(`${BASE}/files/hartley-partners.md`, {
